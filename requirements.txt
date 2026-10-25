@@ -5,3 +5,4 @@ pytesseract>=0.3.10
 pillow>=10.0.0
 pillow-heif>=0.16.0
 reportlab>=4.0.0
+plotly>=5.20.0

@@ -1,13 +1,15 @@
 """
-Orca MedScan — Medical Intelligence Dashboard & Robust Clinical Report Analyzer
+Orca MedScan — Clinical Intelligence Command Center & Multi-Format Diagnostic Analyzer
 Orcathon 2026: Healthcare & MedTech Track
 
-A resilient, multi-format clinical screening system supporting:
-- Digital & Scanned PDFs (with automated OCR fallback)
+Architectural Capabilities:
+- Digital & Scanned PDFs (with automated OCR fallback via pdfplumber page rendering)
 - Multi-format Images: PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC/HEIF
-- Multi-strategy biomarker extraction with alias resolution & diagnostic tracing
-- Comprehensive Clinical Intelligence Dashboard with session audit history
-- Exportable CSV and PDF summary reports
+- Robust multi-strategy biomarker extraction with alias resolution & diagnostic tracing
+- Signature Interactive 3D Medical Holographic Document Scanner
+- Clinical Command Center Dashboard with dark executive aesthetics
+- Interactive Plotly biomarker distribution analytics
+- Exportable structured CSV and ReportLab clinical PDF reports
 """
 
 import io
@@ -18,6 +20,7 @@ from datetime import datetime
 import pandas as pd
 from PIL import Image, ImageOps
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Register HEIF opener if available
 try:
@@ -37,139 +40,242 @@ try:
 except Exception:
     REPORTLAB_AVAILABLE = False
 
+# Plotly for interactive clinical analytics
+try:
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except Exception:
+    PLOTLY_AVAILABLE = False
+
 # Configure Streamlit page
 st.set_page_config(
-    page_title="Orca MedScan | Medical Intelligence Dashboard",
+    page_title="Orca MedScan | Clinical Intelligence",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ---------------------------------------------------------
-# Custom Styling: Spacious, High-Contrast Healthcare Theme
+# Custom Styling: Deep Midnight Healthcare Aesthetic
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-    /* Theme Palette */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
     :root {
-        --med-navy: #0F1E36;
-        --med-teal: #0D9488;
-        --med-blue: #0284C7;
-        --med-bg: #F8FAFC;
-        --med-card-bg: #FFFFFF;
-        --med-border: #E2E8F0;
-        --med-text-main: #0F172A;
-        --med-text-muted: #475569;
+        --bg-midnight: #0A0F1D;
+        --surface-dark: #111827;
+        --surface-card: #161F30;
+        --border-subtle: rgba(56, 189, 248, 0.14);
+        --border-highlight: rgba(56, 189, 248, 0.35);
+        --cyan-neon: #38BDF8;
+        --cyan-glow: rgba(56, 189, 248, 0.25);
+        --mint-healthy: #10B981;
+        --rose-alert: #F43F5E;
+        --amber-warning: #F59E0B;
+        --slate-text: #94A3B8;
+        --white-crisp: #F8FAFC;
     }
 
-    /* Overall Layout */
+    /* Overall Canvas */
+    .stApp {
+        background-color: var(--bg-midnight);
+        color: var(--white-crisp);
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+
     .block-container {
-        padding-top: 1.8rem;
+        padding-top: 1.5rem;
         padding-bottom: 3.5rem;
-        max-width: 1400px;
+        max-width: 1440px;
     }
 
-    /* Primary Navigation Bar */
-    div[data-testid="stHorizontalBlock"]:has(div.nav-pill-active) {
-        background-color: #FFFFFF;
-        padding: 8px 12px;
-        border-radius: 12px;
-        border: 1px solid #CBD5E1;
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Inter', sans-serif;
+        color: var(--white-crisp);
+        letter-spacing: -0.02em;
+        font-weight: 700;
+    }
+
+    /* Hero Banner */
+    .hero-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0 20px 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
         margin-bottom: 24px;
-        box-shadow: 0 1px 3px rgba(15, 30, 54, 0.04);
+    }
+    .hero-title {
+        font-size: 1.95rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #FFFFFF 30%, #38BDF8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .hero-sub {
+        font-size: 0.88rem;
+        color: var(--slate-text);
+        margin-top: 4px;
+    }
+    .enclave-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #34D399;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        font-size: 0.76rem;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.05em;
     }
 
-    /* Metric Cards */
-    .metric-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
+    /* Metric Card Component */
+    .metric-card-dark {
+        background: linear-gradient(145deg, #111827 0%, #161F30 100%);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
         padding: 22px 24px;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+        position: relative;
+        overflow: hidden;
         margin-bottom: 14px;
-        min-height: 125px;
     }
-    .metric-card-title {
-        font-size: 0.88rem;
+    .metric-card-dark::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cyan-neon), transparent);
+    }
+    .metric-label {
+        font-size: 0.82rem;
         font-weight: 600;
-        color: #475569;
+        color: var(--slate-text);
         text-transform: uppercase;
         letter-spacing: 0.06em;
         margin-bottom: 6px;
     }
-    .metric-card-val {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #0F1E36;
+    .metric-number {
+        font-size: 2.3rem;
+        font-weight: 800;
+        color: var(--white-crisp);
+        font-family: 'JetBrains Mono', monospace;
         line-height: 1.1;
     }
-    .metric-card-sub {
-        font-size: 0.85rem;
+    .metric-caption {
+        font-size: 0.82rem;
         color: #64748B;
         margin-top: 6px;
     }
 
     /* Status Badges */
-    .badge-normal {
-        display: inline-block;
-        background-color: #ECFDF5;
-        color: #065F46;
-        border: 1px solid #A7F3D0;
+    .pill-normal {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.12);
+        color: #34D399;
+        border: 1px solid rgba(16, 185, 129, 0.35);
         border-radius: 9999px;
         padding: 5px 14px;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
     }
-    .badge-high {
-        display: inline-block;
-        background-color: #FEF2F2;
-        color: #991B1B;
-        border: 1px solid #FECACA;
+    .pill-high {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(244, 63, 94, 0.15);
+        color: #FB7185;
+        border: 1px solid rgba(244, 63, 94, 0.4);
         border-radius: 9999px;
         padding: 5px 14px;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
     }
-    .badge-low {
-        display: inline-block;
-        background-color: #FFFBEB;
-        color: #92400E;
-        border: 1px solid #FDE68A;
+    .pill-low {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(245, 158, 11, 0.14);
+        color: #FBBF24;
+        border: 1px solid rgba(245, 158, 11, 0.4);
         border-radius: 9999px;
         padding: 5px 14px;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
     }
-    .badge-review {
-        display: inline-block;
-        background-color: #F1F5F9;
-        color: #334155;
-        border: 1px solid #CBD5E1;
+    .pill-review {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(148, 163, 184, 0.12);
+        color: #CBD5E1;
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 9999px;
         padding: 5px 14px;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 600;
+        font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Empty State Box */
-    .empty-state-box {
+    /* Result Row Card */
+    .biomarker-card {
+        background: #111827;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
+    }
+    .biomarker-card:hover {
+        border-color: var(--border-highlight);
+        background: #151E30;
+    }
+
+    /* Empty State Container */
+    .empty-state-dark {
         text-align: center;
-        background-color: #FFFFFF;
-        border: 1.5px dashed #CBD5E1;
-        border-radius: 14px;
+        background: linear-gradient(180deg, #111827 0%, #0D1322 100%);
+        border: 1.5px dashed rgba(56, 189, 248, 0.25);
+        border-radius: 16px;
         padding: 48px 24px;
         margin: 20px 0;
     }
 
-    /* Diagnostic Card */
-    .diag-card {
-        background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 8px;
-        font-family: monospace;
-        font-size: 0.86rem;
+    /* Form & Input adjustments for dark mode */
+    .stTextInput > div > div, .stSelectbox > div > div, .stTextArea > div > div {
+        background-color: #111827 !important;
+        color: #F8FAFC !important;
+        border-color: rgba(148, 163, 184, 0.2) !important;
+    }
+    
+    /* Primary Action Buttons */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #0284C7 0%, #0D9488 100%) !important;
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        border: 1px solid rgba(56, 189, 248, 0.4) !important;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3) !important;
+        border-radius: 9px !important;
+        padding: 10px 22px !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5) !important;
+        transform: translateY(-1px);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -190,7 +296,7 @@ REFERENCE_DB = [
         "unit": "g/dL",
         "min": 12.0,
         "max": 17.5,
-        "desc": "Transports oxygen throughout bodily tissues via erythrocytes.",
+        "desc": "Oxygen transport protein within red blood cells.",
         "plain_note": "A low value indicates potential anemia or iron deficiency; an elevated value may indicate dehydration or secondary erythrocytosis."
     },
     {
@@ -209,7 +315,7 @@ REFERENCE_DB = [
         "unit": "cells/mcL",
         "min": 4000.0,
         "max": 11000.0,
-        "desc": "Essential component of immune defense; responds to infection and inflammation.",
+        "desc": "Primary cellular defense component of the immune system.",
         "plain_note": "Elevations frequently correlate with bacterial infection, tissue injury, or physiological stress; lower counts can indicate viral suppression or bone marrow stress."
     },
     {
@@ -224,7 +330,7 @@ REFERENCE_DB = [
         "unit": "mil/mcL",
         "min": 4.0,
         "max": 5.9,
-        "desc": "Absolute circulating count of oxygen-carrying erythrocytes.",
+        "desc": "Total circulating count of oxygen-carrying erythrocytes.",
         "plain_note": "Monitored to assess blood oxygen transport capacity and hematologic status."
     },
     {
@@ -238,7 +344,7 @@ REFERENCE_DB = [
         "unit": "/mcL",
         "min": 150000.0,
         "max": 450000.0,
-        "desc": "Cell fragments vital for physiological clotting and vascular repair.",
+        "desc": "Platelet fragments essential for hemostatic plug formation and vascular repair.",
         "plain_note": "Low counts (thrombocytopenia) elevate bleeding tendencies; elevated counts occur with reactive inflammation or myeloproliferative response."
     },
     {
@@ -255,7 +361,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 70.0,
         "max": 99.0,
-        "desc": "Serum glucose level following an overnight fast (minimum 8 hours).",
+        "desc": "Blood glucose level following a minimum 8-hour overnight fast.",
         "plain_note": "Values >= 100 mg/dL signify impaired fasting glucose or diabetes mellitus risk, warranting formal glycemic workup."
     },
     {
@@ -272,7 +378,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 70.0,
         "max": 140.0,
-        "desc": "Blood glucose measured approximately 2 hours after a standardized meal.",
+        "desc": "Blood glucose concentration measured 2 hours post-meal.",
         "plain_note": "Levels exceeding 140 mg/dL indicate reduced peripheral insulin clearance or postprandial glucose intolerance."
     },
     {
@@ -289,7 +395,7 @@ REFERENCE_DB = [
         "unit": "%",
         "min": 4.0,
         "max": 5.6,
-        "desc": "Standard index reflecting mean circulating blood glucose over the preceding 60 to 90 days.",
+        "desc": "Weighted 60-to-90 day circulating mean glycemic index.",
         "plain_note": "5.7% to 6.4% indicates prediabetes; values >= 6.5% meet established criteria for diabetic clinical review."
     },
     {
@@ -306,7 +412,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 125.0,
         "max": 200.0,
-        "desc": "Composite circulating serum cholesterol concentration.",
+        "desc": "Overall circulating cholesterol content in serum.",
         "plain_note": "Values exceeding 200 mg/dL accelerate atherogenic cardiovascular risk, meriting lipid fraction review."
     },
     {
@@ -319,7 +425,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 40.0,
         "max": 90.0,
-        "desc": "High-density lipoprotein that clears surplus cholesterol from arterial vasculature.",
+        "desc": "Scavenges excess circulating cholesterol for reverse transport to the liver.",
         "plain_note": "Concentrations below 40 mg/dL represent an independent cardiovascular risk marker; higher figures provide atheroprotective benefits."
     },
     {
@@ -332,7 +438,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 50.0,
         "max": 100.0,
-        "desc": "Low-density lipoprotein involved in atherogenic lipid deposition.",
+        "desc": "Primary atherogenic carrier responsible for arterial plaque accumulation.",
         "plain_note": "Elevated LDL promotes coronary arterial plaque progression; primary target for lipid-lowering lifestyle or medical interventions."
     },
     {
@@ -345,7 +451,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 5.0,
         "max": 30.0,
-        "desc": "Carrier of endogenous triglycerides produced by hepatic tissue.",
+        "desc": "Endogenous triglyceride transporter manufactured in hepatocytes.",
         "plain_note": "Elevated alongside serum triglycerides in secondary metabolic dysregulation."
     },
     {
@@ -361,7 +467,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 40.0,
         "max": 150.0,
-        "desc": "Primary lipid storage molecule circulating in serum.",
+        "desc": "Dominant dietary and endogenous storage lipid.",
         "plain_note": "Concentrations above 150 mg/dL are correlated with insulin resistance, diet composition, and cardiovascular strain."
     },
     {
@@ -376,7 +482,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 0.6,
         "max": 1.2,
-        "desc": "Skeletal muscle breakdown product excreted exclusively through glomerular filtration.",
+        "desc": "Metabolic breakdown marker cleared strictly via glomerular filtration.",
         "plain_note": "Elevations suggest reduced renal clearance or impaired filtration, requiring medical review of renal status and hydration."
     },
     {
@@ -394,7 +500,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 7.0,
         "max": 21.0,
-        "desc": "End product of hepatic protein catabolism, cleared via renal excretion.",
+        "desc": "End byproduct of protein deamination excreted by functional nephrons.",
         "plain_note": "Elevations occur in hypovolemia, high dietary protein consumption, or intrinsic renal impairment."
     },
     {
@@ -410,7 +516,7 @@ REFERENCE_DB = [
         "unit": "U/L",
         "min": 7.0,
         "max": 55.0,
-        "desc": "Predominantly hepatic intracellular enzyme released during hepatocyte injury.",
+        "desc": "Cytosolic hepatocyte enzyme released into circulation upon cellular stress.",
         "plain_note": "Transient or chronic elevations signify liver inflammation, steatosis, medication effects, or acute hepatic insult."
     },
     {
@@ -426,7 +532,7 @@ REFERENCE_DB = [
         "unit": "U/L",
         "min": 8.0,
         "max": 48.0,
-        "desc": "Enzyme concentrated in hepatic, cardiac, and skeletal muscle tissue.",
+        "desc": "Enzyme concentrated within hepatic parenchymal, skeletal, and myocardial cells.",
         "plain_note": "Interpreted in tandem with ALT to distinguish hepatic vs non-hepatic sources of cellular turnover."
     },
     {
@@ -441,7 +547,7 @@ REFERENCE_DB = [
         "unit": "U/L",
         "min": 44.0,
         "max": 147.0,
-        "desc": "Hydrolase enzyme abundant in biliary canaliculi and osteoblasts.",
+        "desc": "Biliary and bone matrix hydrolase enzyme.",
         "plain_note": "High values indicate biliary flow obstruction, cholestatic hepatopathy, or active osteoblastic bone turnover."
     },
     {
@@ -456,7 +562,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 0.2,
         "max": 1.2,
-        "desc": "Degradation product of erythrocyte hemoglobin metabolized by the liver.",
+        "desc": "Heme catabolic product processed and conjugated by hepatocytes.",
         "plain_note": "Accumulation causes clinical jaundice and suggests hemolysis, hepatic metabolic congestion, or biliary blockage."
     },
     {
@@ -471,7 +577,7 @@ REFERENCE_DB = [
         "unit": "mIU/L",
         "min": 0.4,
         "max": 4.5,
-        "desc": "Anterior pituitary regulatory hormone governing thyroid gland secretion.",
+        "desc": "Pituitary feedback hormone modulating thyroid thyroxine output.",
         "plain_note": "Elevated TSH signals compensatory drive for sluggish thyroid activity (hypothyroidism); low TSH reflects hyperthyroid state."
     },
     {
@@ -485,7 +591,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 3.5,
         "max": 7.2,
-        "desc": "Final end-stage oxidation metabolite of endogenous and dietary purines.",
+        "desc": "Terminal oxidation product of purine nucleoside metabolism.",
         "plain_note": "Hyperuricemia elevates the clinical risk for monosodium urate crystallization (gout) or uric acid nephrolithiasis."
     },
     {
@@ -499,7 +605,7 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 8.5,
         "max": 10.5,
-        "desc": "Essential mineral cation mediating neuromuscular conduction and cardiac electrophysiology.",
+        "desc": "Divalent cation mediating bone density, clotting cascades, and membrane stability.",
         "plain_note": "Deviations require workup of parathyroid hormone (PTH), 25-hydroxy vitamin D, and renal electrolyte conservation."
     },
     {
@@ -513,7 +619,7 @@ REFERENCE_DB = [
         "unit": "mEq/L",
         "min": 135.0,
         "max": 145.0,
-        "desc": "Principal extracellular cation regulating intravascular volume and osmotic equilibrium.",
+        "desc": "Major extracellular osmotic determinant maintaining intravascular volume.",
         "plain_note": "Perturbations reflect water balance disorders, endocrine dysfunction, or diuretic therapy."
     },
     {
@@ -527,7 +633,7 @@ REFERENCE_DB = [
         "unit": "mEq/L",
         "min": 3.5,
         "max": 5.1,
-        "desc": "Primary intracellular electrolyte governing cardiac rhythmicity and membrane potentials.",
+        "desc": "Dominant intracellular cation regulating transmembrane potential and cardiac repolarization.",
         "plain_note": "Both hypokalemia and hyperkalemia represent electrophysiologic risks requiring prompt physician review."
     }
 ]
@@ -577,16 +683,10 @@ End of Report. Authenticated by Dr. K. Sharma (MD, Pathology).
 NUMBER_REGEX = re.compile(r"(?<![A-Za-z0-9.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)(?![0-9.])")
 
 def clean_num_str(raw: str) -> float:
-    """Parse numeric string with commas or decimals into float safely."""
     sanitized = raw.replace(",", "").strip()
     return float(sanitized)
 
 def extract_printed_range(line: str):
-    """
-    Detects printed reference intervals in a line.
-    Matches formats like '13.0 - 17.5', '150000 - 450000', '4.0-5.6', '< 200', '> 40', '0.6 to 1.2'.
-    """
-    # Interval: min - max
     interval_match = re.search(r"(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
     if interval_match:
         try:
@@ -597,7 +697,6 @@ def extract_printed_range(line: str):
         except Exception:
             pass
 
-    # Threshold: < max
     less_match = re.search(r"<\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
     if less_match:
         try:
@@ -606,7 +705,6 @@ def extract_printed_range(line: str):
         except Exception:
             pass
 
-    # Threshold: > min
     more_match = re.search(r">\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
     if more_match:
         try:
@@ -618,7 +716,6 @@ def extract_printed_range(line: str):
     return None, None, None
 
 def detect_printed_flag(line: str) -> str:
-    """Detects explicit high/low flags printed in report line (e.g. '10.8 L', '145 H', 'High')."""
     if re.search(r"\b(?:H|HIGH|\*)\b", line, re.IGNORECASE):
         return "High"
     if re.search(r"\b(?:L|LOW)\b", line, re.IGNORECASE):
@@ -626,33 +723,25 @@ def detect_printed_flag(line: str) -> str:
     return ""
 
 def sanitize_line(raw: str) -> str:
-    """Normalizes punctuation, dashes, dots, and colons in line for easier matching."""
     s = raw.replace("\t", " ")
-    # Normalize multiple dots used as leader dots: 'Hemoglobin ....... 14.2' -> 'Hemoglobin 14.2'
     s = re.sub(r"\.{2,}", " ", s)
     return s.strip()
 
 def parse_report_with_diagnostics(raw_text: str):
-    """
-    Robust multi-strategy parser that extracts recognized biomarkers,
-    evaluates reference ranges, and returns diagnostics for unmatched candidate lines.
-    """
     lines = [sanitize_line(l) for l in raw_text.splitlines() if l.strip()]
     extracted_records = []
     seen_biomarkers = set()
     recognized_lines = set()
     unrecognized_candidates = []
 
-    # Filter out common metadata lines to prevent false matching (Age, Dates, Phone, Sample IDs)
     def is_metadata_line(l: str) -> bool:
         lower = l.lower()
         if re.search(r"\b(?:age|dob|sex|gender|date|sample id|patient id|phone|ref\.? by)\b", lower):
-            # Check if it doesn't also contain a known test name
             has_test = any(any(re.search(p, lower) for p in b["patterns"]) for b in REFERENCE_DB)
             return not has_test
         return False
 
-    # Strategy 1: In-line matching (Test and value on the same line)
+    # Strategy 1: In-line extraction
     for idx, line in enumerate(lines):
         if is_metadata_line(line):
             continue
@@ -661,27 +750,19 @@ def parse_report_with_diagnostics(raw_text: str):
             if bio["id"] in seen_biomarkers:
                 continue
 
-            matched = False
-            for pat in bio["patterns"]:
-                if re.search(pat, line, re.IGNORECASE):
-                    matched = True
-                    break
-
+            matched = any(re.search(pat, line, re.IGNORECASE) for pat in bio["patterns"])
             if not matched:
                 continue
 
-            # Extract numbers on this line
             numbers = NUMBER_REGEX.findall(line)
             if not numbers:
                 continue
 
-            # Check printed range
             p_min, p_max, p_label = extract_printed_range(line)
             printed_flag = detect_printed_flag(line)
 
             measured_val = None
             if p_min is not None and p_max is not None:
-                # If range exists on line, pick the first number that isn't one of the range bounds
                 for num_str in numbers:
                     try:
                         val = clean_num_str(num_str)
@@ -700,7 +781,6 @@ def parse_report_with_diagnostics(raw_text: str):
             if measured_val is None:
                 continue
 
-            # Evaluate effective range
             if p_min is not None and p_max is not None:
                 eff_min = p_min
                 eff_max = p_max
@@ -712,7 +792,6 @@ def parse_report_with_diagnostics(raw_text: str):
                 range_display = f"{eff_min} - {eff_max}"
                 range_source = "Standard Adult Reference"
 
-            # Determine clinical category
             if eff_min is not None and eff_max is not None:
                 if measured_val < eff_min:
                     status = "Potentially Low"
@@ -743,7 +822,7 @@ def parse_report_with_diagnostics(raw_text: str):
             seen_biomarkers.add(bio["id"])
             recognized_lines.add(idx)
 
-    # Strategy 2: Two-line / columnar matching (Test name on line N, result on line N+1)
+    # Strategy 2: Two-line / multiline column matching
     for idx in range(len(lines) - 1):
         if idx in recognized_lines:
             continue
@@ -758,7 +837,6 @@ def parse_report_with_diagnostics(raw_text: str):
             if not matched:
                 continue
 
-            # Check if next line contains the numeric result
             numbers = NUMBER_REGEX.findall(line_next)
             if not numbers:
                 continue
@@ -811,11 +889,10 @@ def parse_report_with_diagnostics(raw_text: str):
             recognized_lines.add(idx)
             recognized_lines.add(idx + 1)
 
-    # Diagnostics: Detect candidate lines that had numbers and test-like words but weren't matched
+    # Candidates for extraction telemetry
     for idx, line in enumerate(lines):
         if idx in recognized_lines or is_metadata_line(line):
             continue
-        # Check if line has a number and letters
         has_num = bool(NUMBER_REGEX.search(line))
         has_letters = bool(re.search(r"[A-Za-z]{3,}", line))
         if has_num and has_letters and not re.search(r"\b(?:page|doctor|signature|accredited|end of report)\b", line, re.IGNORECASE):
@@ -831,15 +908,13 @@ def parse_report_with_diagnostics(raw_text: str):
     return extracted_records, diagnostics
 
 def parse_report_text(raw_text: str):
-    """Backwards-compatible wrapper returning only records."""
     records, _ = parse_report_with_diagnostics(raw_text)
     return records
 
 # ---------------------------------------------------------
-# 4. Multi-Format Document Ingestion Engine
+# 4. Multi-Format Ingestion Engine
 # ---------------------------------------------------------
 def get_tesseract_command():
-    """Locates the Tesseract OCR executable across standard local and cloud paths."""
     candidates = [
         shutil.which("tesseract"),
         "/usr/bin/tesseract",
@@ -855,77 +930,51 @@ def is_tesseract_available() -> bool:
     return get_tesseract_command() is not None
 
 def preprocess_image_for_ocr(pil_img: Image.Image) -> Image.Image:
-    """Preprocesses image to enhance OCR contrast, orientation, and resolution."""
-    # 1. Correct EXIF orientation
     try:
         pil_img = ImageOps.exif_transpose(pil_img)
     except Exception:
         pass
 
-    # 2. Convert to RGB to discard alpha channels
     if pil_img.mode != "RGB":
         pil_img = pil_img.convert("RGB")
 
-    # 3. Upscale small images to ensure decimal points and small fonts are distinct
     w, h = pil_img.size
     if w < 1400:
         scale_factor = 2
         pil_img = pil_img.resize((w * scale_factor, h * scale_factor), Image.Resampling.LANCZOS)
 
-    # 4. Convert to grayscale and apply autocontrast
     gray = pil_img.convert("L")
     contrasted = ImageOps.autocontrast(gray)
     return contrasted
 
 def extract_text_from_image(image_bytes):
-    """
-    Ingests PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC/HEIF images.
-    Returns (success: bool, text_or_error: str, format_name: str).
-    """
     tess_cmd = get_tesseract_command()
     if not tess_cmd:
-        return False, (
-            "Tesseract OCR executable is not available on this system.\n\n"
-            "Installation Guide:\n"
-            "• macOS: `brew install tesseract`\n"
-            "• Linux / Streamlit Cloud: `apt-get install tesseract-ocr` (configured via packages.txt)\n"
-            "• Windows: Download installer from GitHub UB-Mannheim/tesseract\n\n"
-            "Fallback: You can paste the text directly into the 'Paste Report Text' tab."
-        ), "Unknown"
+        return False, "Tesseract OCR executable not found on host system.", "Unknown"
 
     try:
         import pytesseract
         pytesseract.pytesseract.tesseract_cmd = tess_cmd
 
-        # Inspect and open with Pillow
         img = Image.open(image_bytes)
         img_format = img.format or "Image"
-
         proc_img = preprocess_image_for_ocr(img)
 
-        # First attempt with PSM 6 (uniform block of text / table)
         ocr_text = pytesseract.image_to_string(proc_img, config="--psm 6")
         if not ocr_text.strip():
-            # Fallback attempt with default PSM
             ocr_text = pytesseract.image_to_string(proc_img)
 
         if not ocr_text.strip():
-            return False, "No readable text detected in this image. Please ensure sufficient lighting, sharpness, and resolution.", img_format
+            return False, "No readable text detected in image.", img_format
 
         return True, ocr_text, img_format
     except Exception as e:
         return False, f"Image decoding / OCR error: {str(e)}", "Error"
 
 def extract_text_from_pdf(pdf_bytes):
-    """
-    Extracts text from PDF. If the PDF is scanned (insufficient embedded text),
-    automatically renders pages to images and runs OCR on each page.
-    Returns (success: bool, text: str, method: str, pages_count: int).
-    """
     try:
         import pdfplumber
         extracted_pages = []
-        is_scanned = False
         tess_cmd = get_tesseract_command()
 
         with pdfplumber.open(pdf_bytes) as pdf:
@@ -933,23 +982,15 @@ def extract_text_from_pdf(pdf_bytes):
             if total_pages == 0:
                 return False, "PDF contains zero pages.", "Empty", 0
 
-            # 1. Attempt digital text stream extraction
             for page in pdf.pages:
                 text = page.extract_text()
                 if text and text.strip():
                     extracted_pages.append(text.strip())
 
-            # 2. Check if text is sufficient or if it's a scanned document
             combined_text = "\n\n".join(extracted_pages)
             if len(combined_text.strip()) < 30:
-                # Scanned PDF detected: Fall back to rendering pages as images + OCR
-                is_scanned = True
                 if not tess_cmd:
-                    return False, (
-                        "This PDF appears to be a scanned image without an embedded digital text layer, "
-                        "and Tesseract OCR is not installed on this host. "
-                        "Please install tesseract or copy-paste report text directly."
-                    ), "Scanned PDF (No OCR)", total_pages
+                    return False, "Scanned PDF detected without available OCR engine.", "Scanned PDF (No OCR)", total_pages
 
                 import pytesseract
                 pytesseract.pytesseract.tesseract_cmd = tess_cmd
@@ -970,17 +1011,16 @@ def extract_text_from_pdf(pdf_bytes):
                 method = "Digital PDF Stream"
 
             if not combined_text.strip():
-                return False, "No readable text could be retrieved from this PDF.", method, total_pages
+                return False, "No readable text retrieved from PDF.", method, total_pages
 
             return True, combined_text, method, total_pages
     except Exception as e:
         return False, f"PDF extraction failed: {str(e)}", "Error", 0
 
 # ---------------------------------------------------------
-# 5. PDF Audit Report Exporter (ReportLab)
+# 5. ReportLab PDF Clinical Summary Generator
 # ---------------------------------------------------------
 def generate_pdf_audit_report(meta: dict, records: list) -> bytes:
-    """Generates a professional clinical PDF audit report using ReportLab."""
     if not REPORTLAB_AVAILABLE:
         return b""
 
@@ -1010,7 +1050,6 @@ def generate_pdf_audit_report(meta: dict, records: list) -> bytes:
         Spacer(1, 14),
     ]
 
-    # Table data
     table_data = [["Biomarker", "Result", "Unit", "Reference Interval", "Status"]]
     for r in records:
         table_data.append([
@@ -1039,7 +1078,276 @@ def generate_pdf_audit_report(meta: dict, records: list) -> bytes:
     return buf.getvalue()
 
 # ---------------------------------------------------------
-# 6. Session State Management
+# 6. Signature 3D Interactive Scanner Centerpiece
+# ---------------------------------------------------------
+def render_3d_scanner_centerpiece():
+    """Renders the signature WebGL/Canvas 3D interactive holographic medical document."""
+    html_code = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: transparent;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 340px;
+        }
+
+        .viewport-3d {
+            width: 100%;
+            height: 330px;
+            perspective: 1100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: crosshair;
+        }
+
+        .holo-card {
+            width: 520px;
+            height: 290px;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.85) 100%);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15);
+            transform-style: preserve-3d;
+            transform: rotateX(16deg) rotateY(-12deg);
+            transition: transform 0.1s ease-out;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        /* 3D Grid Blueprint */
+        .grid-layer {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+            background-size: 24px 24px;
+            transform: translateZ(10px);
+            pointer-events: none;
+        }
+
+        /* Sweeping Volumetric Laser */
+        .laser-beam {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #38BDF8, #00F2FE, #38BDF8, transparent);
+            box-shadow: 0 0 18px #38BDF8, 0 0 35px #00F2FE;
+            animation: sweepLaser 3.5s ease-in-out infinite alternate;
+            transform: translateZ(28px);
+        }
+
+        @keyframes sweepLaser {
+            0% { top: 8%; opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { top: 90%; opacity: 0.8; }
+        }
+
+        /* Header Info Inside Holo */
+        .holo-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+            transform: translateZ(20px);
+        }
+        .holo-title {
+            color: #F8FAFC;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .holo-status {
+            color: #34D399;
+            font-size: 0.72rem;
+            background: rgba(16, 185, 129, 0.18);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 3px 8px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .holo-status-dot {
+            width: 6px;
+            height: 6px;
+            background: #34D399;
+            border-radius: 50%;
+            animation: pulseDot 1.5s infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        /* Floating 3D Biomarker Nodes */
+        .nodes-container {
+            padding: 18px 22px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            transform: translateZ(35px);
+        }
+        .holo-node {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            padding: 9px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        .holo-node:hover {
+            border-color: #38BDF8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+            transform: translateZ(48px);
+        }
+        .node-name {
+            color: #94A3B8;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+        .node-val {
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .val-low { color: #FBBF24; }
+        .val-high { color: #FB7185; }
+        .val-norm { color: #34D399; }
+
+        /* Sonar Ripple on Click */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid #38BDF8;
+            animation: rippleAnim 1.2s cubic-bezier(0, 0.2, 0.8, 1) forwards;
+            pointer-events: none;
+            transform: translateZ(30px);
+        }
+        @keyframes rippleAnim {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 450px; height: 450px; opacity: 0; }
+        }
+
+        /* Bottom Telemetry */
+        .holo-footer {
+            position: absolute;
+            bottom: 12px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #64748B;
+            font-size: 0.68rem;
+            letter-spacing: 0.05em;
+            transform: translateZ(15px);
+        }
+    </style>
+    </head>
+    <body>
+        <div class="viewport-3d" id="viewport">
+            <div class="holo-card" id="card">
+                <div class="grid-layer"></div>
+                <div class="laser-beam"></div>
+
+                <div class="holo-header">
+                    <div class="holo-title">🧬 CLINICAL SCANNER CORE // 3D TELEMETRY</div>
+                    <div class="holo-status">
+                        <div class="holo-status-dot"></div>
+                        ACTIVE SCAN
+                    </div>
+                </div>
+
+                <div class="nodes-container">
+                    <div class="holo-node">
+                        <span class="node-name">Hemoglobin</span>
+                        <span class="node-val val-low">10.8 g/dL ▼</span>
+                    </div>
+                    <div class="holo-node">
+                        <span class="node-name">Glucose (F)</span>
+                        <span class="node-val val-high">132 mg/dL ▲</span>
+                    </div>
+                    <div class="holo-node">
+                        <span class="node-name">Cholesterol</span>
+                        <span class="node-val val-high">228 mg/dL ▲</span>
+                    </div>
+                    <div class="holo-node">
+                        <span class="node-name">Platelet Count</span>
+                        <span class="node-val val-norm">240k /mcL ●</span>
+                    </div>
+                    <div class="holo-node">
+                        <span class="node-name">Creatinine</span>
+                        <span class="node-val val-norm">1.1 mg/dL ●</span>
+                    </div>
+                    <div class="holo-node">
+                        <span class="node-name">HbA1c</span>
+                        <span class="node-val val-high">6.8 % ▲</span>
+                    </div>
+                </div>
+
+                <div class="holo-footer">
+                    <span>VOLUMETRIC REFERENCE VERIFICATION</span>
+                    <span>PARALLAX DEPTH: 1100PX // 60 FPS</span>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const viewport = document.getElementById('viewport');
+            const card = document.getElementById('card');
+
+            // Responsive 3D Mouse Parallax
+            viewport.addEventListener('mousemove', (e) => {
+                const rect = viewport.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                
+                const rotY = (x / (rect.width / 2)) * 18;
+                const rotX = -(y / (rect.height / 2)) * 18;
+
+                card.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+            });
+
+            viewport.addEventListener('mouseleave', () => {
+                card.style.transform = `rotateX(16deg) rotateY(-12deg)`;
+            });
+
+            // Interactive Ripple Pulse on Click
+            viewport.addEventListener('click', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                ripple.style.left = (x - 225) + 'px';
+                ripple.style.top = (y - 225) + 'px';
+                card.appendChild(ripple);
+
+                setTimeout(() => ripple.remove(), 1200);
+            });
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_code, height=340, scrolling=False)
+
+# ---------------------------------------------------------
+# 7. Session State Management
 # ---------------------------------------------------------
 def init_session_state():
     if "history" not in st.session_state:
@@ -1077,49 +1385,58 @@ def add_report_to_history(source_name: str, source_type: str, records: list, raw
     return entry
 
 # ---------------------------------------------------------
-# 7. Navigation & Top-Level Selector
+# 8. Navigation & Top-Level Hero Header
 # ---------------------------------------------------------
-def render_navigation_bar():
-    st.markdown("### 🩺 Orca MedScan — Clinical Intelligence Platform")
-    
-    views = [
-        "📊 Dashboard",
-        "🔬 Analyze Report",
-        "📋 Report History",
-        "🔍 Extraction Diagnostics",
-        "ℹ️ About & Safety"
-    ]
-    # Clean map
-    clean_map = {
-        "📊 Dashboard": "Dashboard",
-        "🔬 Analyze Report": "Analyze Report",
-        "📋 Report History": "Report History",
-        "🔍 Extraction Diagnostics": "Extraction Diagnostics",
-        "ℹ️ About & Safety": "About & Safety"
-    }
-    current_idx = list(clean_map.values()).index(st.session_state["nav_view"])
+def render_header_and_navigation():
+    # Hero Banner
+    st.markdown("""
+    <div class="hero-container">
+        <div>
+            <h1 class="hero-title">🩺 ORCA MEDSCAN</h1>
+            <div class="hero-sub">Clinical Intelligence Command Center & Multi-Format Laboratory Diagnostics</div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="enclave-badge">
+                <span style="font-size: 0.9rem;">●</span> ZERO-CLOUD ENCLAVE // LOCAL RUNTIME
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    selected = st.radio(
+    views = [
+        "📊 Command Dashboard",
+        "🔬 Ingest & Analyze",
+        "📋 Audit History",
+        "🔍 Extraction Telemetry",
+        "ℹ️ Clinical Safety"
+    ]
+    view_keys = {
+        "📊 Command Dashboard": "Dashboard",
+        "🔬 Ingest & Analyze": "Analyze Report",
+        "📋 Audit History": "Report History",
+        "🔍 Extraction Telemetry": "Extraction Diagnostics",
+        "ℹ️ Clinical Safety": "About & Safety"
+    }
+
+    current_idx = list(view_keys.values()).index(st.session_state["nav_view"])
+    selected_label = st.radio(
         "Navigation",
         views,
         index=current_idx,
         horizontal=True,
         label_visibility="collapsed"
     )
-    new_view = clean_map[selected]
+    new_view = view_keys[selected_label]
     if new_view != st.session_state["nav_view"]:
         st.session_state["nav_view"] = new_view
         st.rerun()
 
-    st.markdown("<hr style='margin-top: 6px; margin-bottom: 20px; border-color: #E2E8F0;'>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin-top: 6px; margin-bottom: 24px; border-color: rgba(148, 163, 184, 0.12);'>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 8. View: Dashboard
+# 9. View: Command Dashboard
 # ---------------------------------------------------------
 def render_dashboard_view():
-    st.markdown("## 📊 Medical Intelligence Dashboard")
-    st.caption("Executive overview of biomarker screenings, reference interval verifications, and detected anomalies.")
-
     history = st.session_state["history"]
     total_audits = len(history)
 
@@ -1134,160 +1451,172 @@ def render_dashboard_view():
         total_uncertain = 0
         total_normal = 0
 
-    # Summary metric cards
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
+    # Top Row: 3D Holographic Centerpiece + Real-Time Telemetry
+    col_3d, col_stats = st.columns([7, 5])
+
+    with col_3d:
+        render_3d_scanner_centerpiece()
+
+    with col_stats:
         st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-card-title">Reports Audited</div>
-            <div class="metric-card-val">{total_audits}</div>
-            <div class="metric-card-sub">Active session verifications</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-card-title">Biomarkers Screened</div>
-            <div class="metric-card-val">{total_indicators}</div>
-            <div class="metric-card-sub">{total_normal} within reference range</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c3:
-        flag_color = "#DC2626" if total_flagged > 0 else "#0D9488"
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-card-title">Out-of-Range Flags</div>
-            <div class="metric-card-val" style="color: {flag_color};">{total_flagged}</div>
-            <div class="metric-card-sub">Potentially High or Low values</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-card-title">Needs Review</div>
-            <div class="metric-card-val" style="color: #64748B;">{total_uncertain}</div>
-            <div class="metric-card-sub">Atypical or non-standard format</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px;">
+            <div class="metric-card-dark">
+                <div class="metric-label">Reports Audited</div>
+                <div class="metric-number">{total_audits}</div>
+                <div class="metric-caption">Session telemetry records</div>
+            </div>
+            <div class="metric-card-dark">
+                <div class="metric-label">Biomarkers Screened</div>
+                <div class="metric-number">{total_indicators}</div>
+                <div class="metric-caption">{total_normal} in verified interval</div>
+            </div>
+            <div class="metric-card-dark">
+                <div class="metric-label">Out-of-Range Flags</div>
+                <div class="metric-number" style="color: {'#FB7185' if total_flagged > 0 else '#34D399'};">{total_flagged}</div>
+                <div class="metric-caption">Requiring clinical attention</div>
+            </div>
+            <div class="metric-card-dark">
+                <div class="metric-label">Needs Review</div>
+                <div class="metric-number" style="color: #94A3B8;">{total_uncertain}</div>
+                <div class="metric-caption">Atypical or non-standard format</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("⚡ 1-Click Synthetic Benchmark (For Judges)", type="primary", use_container_width=True):
+            records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
+            add_report_to_history("Metropolis Diagnostic Sample (MET-98421)", "Synthetic Benchmark", records, SYNTHETIC_REPORT, diag)
+            st.rerun()
 
-    # Empty State Condition
+    # Empty State Notice if No Audits
     if total_audits == 0:
         st.markdown("""
-        <div class="empty-state-box">
-            <div style="font-size: 3rem; margin-bottom: 12px;">🩺</div>
-            <h3 style="color: #0F1E36; margin-bottom: 8px;">No Clinical Reports Analyzed in this Session Yet</h3>
-            <p style="color: #64748B; max-width: 620px; margin: 0 auto 24px auto; font-size: 1rem; line-height: 1.5;">
-                Ingest a digital or scanned laboratory document (PDF, PNG, JPG, WEBP, BMP, TIFF), paste raw report text,
-                or launch the pre-configured synthetic demo to populate real-time analytics.
+        <div class="empty-state-dark">
+            <div style="font-size: 2.8rem; margin-bottom: 12px;">📑</div>
+            <h3 style="color: #F8FAFC; margin-bottom: 8px;">No Clinical Documents Audited in Active Session</h3>
+            <p style="color: #94A3B8; max-width: 580px; margin: 0 auto 20px auto; font-size: 0.95rem; line-height: 1.5;">
+                Ingest laboratory reports (PDFs, PNG, JPG, WEBP, BMP, TIFF) or click the 1-Click Benchmark above
+                to populate real-time biometric distributions and volumetric anomaly alerts.
             </p>
         </div>
         """, unsafe_allow_html=True)
-
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("🚀 Analyze New Medical Report", use_container_width=True, type="primary"):
-                st.session_state["nav_view"] = "Analyze Report"
-                st.rerun()
-        with col2:
-            if st.button("⚡ Load 1-Click Synthetic Sample (For Judges)", use_container_width=True):
-                records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
-                add_report_to_history("Metropolis Diagnostic Sample (MET-98421)", "Synthetic Sample", records, SYNTHETIC_REPORT, diag)
-                st.rerun()
         return
 
-    # Populated State: Charts & Anomaly Callouts
-    st.markdown("### 📈 Indicator Status Breakdown & Priority Alerts")
-    chart_col, alert_col = st.columns([3, 2])
+    st.markdown("---")
 
-    with chart_col:
-        st.markdown("##### Session Biomarker Classification")
-        dist_df = pd.DataFrame({
-            "Classification": ["Normal", "Out-of-Range (Flagged)", "Review Needed"],
-            "Count": [total_normal, total_flagged, total_uncertain]
-        })
-        st.bar_chart(dist_df.set_index("Classification"), color="#0284C7", use_container_width=True)
+    # Mid Row: Biomarker Analytics & Priority Anomalies
+    col_chart, col_alerts = st.columns([6, 6])
 
-    with alert_col:
-        st.markdown("##### 🚨 Priority Anomalies (Latest Audit)")
-        current_meta = st.session_state["current_meta"]
+    with col_chart:
+        st.subheader("📊 Biomarker Status Distribution")
+        if PLOTLY_AVAILABLE:
+            fig = go.Figure(data=[go.Pie(
+                labels=["In Reference Range", "Potentially High", "Potentially Low", "Review Needed"],
+                values=[
+                    total_normal,
+                    sum(1 for h in history for r in h["records"] if "High" in r["Status"]),
+                    sum(1 for h in history for r in h["records"] if "Low" in r["Status"]),
+                    total_uncertain
+                ],
+                hole=.65,
+                marker=dict(colors=["#10B981", "#F43F5E", "#F59E0B", "#64748B"]),
+                textinfo="label+value"
+            )])
+            fig.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#F8FAFC", family="Inter, sans-serif"),
+                showlegend=False,
+                height=260,
+                margin=dict(t=10, b=10, l=10, r=10)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            dist_df = pd.DataFrame({
+                "Classification": ["Normal", "Out-of-Range", "Review Needed"],
+                "Count": [total_normal, total_flagged, total_uncertain]
+            })
+            st.bar_chart(dist_df.set_index("Classification"), color="#38BDF8")
+
+    with col_alerts:
+        st.subheader("🚨 Priority Anomaly Alerts (Latest Document)")
+        current_meta = st.session_state.get("current_meta")
         latest_records = current_meta["records"] if current_meta else []
         flagged_items = [r for r in latest_records if r["Category"] == "flagged"]
 
         if flagged_items:
             for item in flagged_items[:4]:
-                badge = "🔺 Potentially High" if "High" in item["Status"] else "🔻 Potentially Low"
+                badge_class = "pill-high" if "High" in item["Status"] else "pill-low"
+                arrow = "▲" if "High" in item["Status"] else "▼"
                 st.markdown(f"""
-                <div style="background-color: #FFFFFF; border-left: 4px solid #DC2626; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; border: 1px solid #E2E8F0; border-left-width: 4px;">
+                <div style="background: #111827; border-left: 4px solid {'#F43F5E' if 'High' in item['Status'] else '#F59E0B'}; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; border: 1px solid rgba(148, 163, 184, 0.12); border-left-width: 4px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong>{item['Test Name']}</strong>
-                        <span style="font-size: 0.8rem; font-weight: 600; color: #DC2626;">{badge}</span>
+                        <strong style="color: #F8FAFC; font-size: 0.95rem;">{item['Test Name']}</strong>
+                        <span class="{badge_class}">{arrow} {item['Status']}</span>
                     </div>
-                    <div style="font-size: 0.85rem; color: #475569; margin-top: 4px;">
-                        Measured: <b>{item['Measured Value']} {item['Unit']}</b> (Ref: {item['Reference Range']} {item['Unit']})
+                    <div style="font-size: 0.85rem; color: #94A3B8; margin-top: 4px;">
+                        Measured: <b style="color: #F8FAFC;">{item['Measured Value']} {item['Unit']}</b> (Ref: {item['Reference Range']} {item['Unit']})
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-            if len(flagged_items) > 4:
-                st.caption(f"+ {len(flagged_items) - 4} more flagged indicators")
         else:
-            st.success("All indicators in the latest analyzed report are within expected reference intervals.")
+            st.success("All biomarkers in the latest audited document are within verified reference intervals.")
 
     st.markdown("---")
 
-    # Latest Audit Overview Table
-    st.subheader(f"📑 Latest Report Audit: {st.session_state['current_meta']['source_name']}")
-    st.caption(f"Audit ID: {st.session_state['current_meta']['id']} | Screened: {st.session_state['current_meta']['timestamp']} | Input Type: {st.session_state['current_meta']['source_type']}")
+    # Bottom Row: Active Audit Overview Table & Exports
+    latest_meta = st.session_state["current_meta"]
+    st.subheader(f"📑 Active Audit: {latest_meta['source_name']}")
+    st.caption(f"Audit ID: `{latest_meta['id']}` | Timestamp: `{latest_meta['timestamp']}` | Format: `{latest_meta['source_type']}`")
 
     latest_df = pd.DataFrame(st.session_state["current_records"])
-    display_df = latest_df[["Test Name", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]].copy()
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    disp_df = latest_df[["Test Name", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]].copy()
+    st.dataframe(disp_df, use_container_width=True, hide_index=True)
 
-    # Action row
-    btn1, btn2, btn3 = st.columns([1, 1, 1])
-    with btn1:
-        if st.button("➕ Analyze Another Report", use_container_width=True, type="primary"):
+    # Export Action Row
+    act1, act2, act3 = st.columns([1, 1, 1])
+    with act1:
+        if st.button("➕ Ingest Another Report", use_container_width=True, type="primary"):
             st.session_state["nav_view"] = "Analyze Report"
             st.rerun()
-    with btn2:
+    with act2:
         csv_buffer = io.StringIO()
         latest_df.to_csv(csv_buffer, index=False)
         st.download_button(
-            label="📥 Download Audit Data (CSV)",
+            label="📥 Download Structured CSV",
             data=csv_buffer.getvalue(),
-            file_name=f"orca_audit_{st.session_state['current_meta']['id']}.csv",
+            file_name=f"orca_audit_{latest_meta['id']}.csv",
             mime="text/csv",
             use_container_width=True
         )
-    with btn3:
+    with act3:
         if REPORTLAB_AVAILABLE:
-            pdf_bytes = generate_pdf_audit_report(st.session_state["current_meta"], st.session_state["current_records"])
+            pdf_bytes = generate_pdf_audit_report(latest_meta, st.session_state["current_records"])
             st.download_button(
                 label="📄 Download Clinical Summary (PDF)",
                 data=pdf_bytes,
-                file_name=f"orca_clinical_summary_{st.session_state['current_meta']['id']}.pdf",
+                file_name=f"orca_clinical_summary_{latest_meta['id']}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
 
 # ---------------------------------------------------------
-# 9. View: Analyze Report
+# 10. View: Ingest & Analyze
 # ---------------------------------------------------------
 def render_analyze_view():
-    st.markdown("## 🔬 Clinical Report Analyzer")
-    st.caption("Upload medical lab documents or paste raw text to screen biomarkers and evaluate reference intervals.")
+    st.subheader("🔬 Multi-Format Report Ingestion & Screening")
+    st.caption("Supports digital/scanned PDFs (with automated OCR fallback), PNG, JPG, JPEG, WEBP, BMP, TIFF, and direct clinical text.")
 
-    st.warning(
-        "⚠️ **Clinical Screening Disclaimer**: Orca MedScan is an informational decision-support prototype. "
-        "It does not provide diagnosis, clinical staging, or pharmaceutical prescriptions. Always corroborate findings with licensed healthcare providers."
-    )
+    st.markdown("""
+    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; color: #FDE68A; font-size: 0.85rem;">
+        ⚠️ <b>Clinical Screening Guardrail:</b> Orca MedScan is an educational and clinical decision-support screening prototype. It does not provide diagnoses or pharmaceutical prescriptions. Always corroborate findings with licensed healthcare providers.
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Ingestion Tabs
     tab_upload, tab_paste, tab_sample = st.tabs([
-        "📁 Upload Document / Image (PDF, PNG, JPG, WEBP, BMP, TIFF)",
+        "📁 Upload Document / Image",
         "📝 Paste Report Text",
-        "⚡ 1-Click Synthetic Sample"
+        "⚡ 1-Click Benchmark"
     ])
 
     extracted_text = ""
@@ -1296,7 +1625,7 @@ def render_analyze_view():
     extraction_method = "Direct"
 
     with tab_upload:
-        st.markdown("##### Supported Formats: `.pdf` (digital or scanned), `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`")
+        st.markdown("##### Supported: `.pdf` (digital & scanned), `.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`")
         uploaded_file = st.file_uploader(
             "Select medical lab report file:",
             type=["pdf", "png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "heic", "heif"],
@@ -1309,7 +1638,7 @@ def render_analyze_view():
             file_bytes = io.BytesIO(uploaded_file.read())
 
             if fname_lower.endswith(".pdf"):
-                with st.spinner("Processing PDF (verifying digital text layer & scanned OCR fallback)..."):
+                with st.spinner("Processing PDF (verifying text stream & scanned OCR fallback)..."):
                     success, text_res, method, pages = extract_text_from_pdf(file_bytes)
                     if success:
                         extracted_text = text_res
@@ -1319,7 +1648,6 @@ def render_analyze_view():
                     else:
                         st.error(f"❌ {text_res}")
             else:
-                # Image processing
                 col_img, col_ocr_info = st.columns([1, 1])
                 with col_img:
                     try:
@@ -1328,7 +1656,7 @@ def render_analyze_view():
                         st.info(f"Image uploaded: `{uploaded_file.name}`")
 
                 with col_ocr_info:
-                    with st.spinner("Detecting format and executing optical character recognition (OCR)..."):
+                    with st.spinner("Executing optical character recognition (OCR)..."):
                         file_bytes.seek(0)
                         success, text_res, detected_format = extract_text_from_image(file_bytes)
                         if success:
@@ -1353,9 +1681,9 @@ def render_analyze_view():
             extraction_method = "Direct Paste"
 
     with tab_sample:
-        st.markdown("##### Pre-configured Clinical Test Panel (John Doe, 46 Y / Male)")
-        st.info("Includes Complete Blood Count (CBC), Metabolic Panel, Lipid Profile, Renal Function, and Thyroid panel with printed reference ranges.")
-        if st.button("Load Sample Data Into Review Box", type="secondary"):
+        st.markdown("##### Pre-configured Clinical Benchmark Panel (John Doe, 46 Y / Male)")
+        st.info("Contains CBC, Metabolic, Lipid, Renal, Hepatic, and Thyroid biomarkers with printed reference intervals.")
+        if st.button("Load Benchmark Panel Into Review Box", type="secondary"):
             st.session_state["raw_text_buffer"] = SYNTHETIC_REPORT
             st.rerun()
 
@@ -1369,7 +1697,7 @@ def render_analyze_view():
 
     # Editable Pre-Analysis Verification Box
     if extracted_text:
-        with st.expander("🔍 Inspect & Edit Extracted Text Before Analysis", expanded=True):
+        with st.expander("🔍 Inspect & Verify Extracted Text Before Analysis", expanded=True):
             st.caption(f"Extraction Pipeline: **{extraction_method}** | Document: `{source_label}`")
             final_text = st.text_area("Report Text for Analysis:", value=extracted_text, height=180)
     else:
@@ -1384,36 +1712,30 @@ def render_analyze_view():
             st.session_state["raw_text_buffer"] = ""
             st.rerun()
 
-    # Execution & Results Rendering
     if run_analysis:
         if not final_text.strip():
             st.warning("Please provide or upload report text before analyzing.")
             return
 
-        with st.spinner("Extracting biomarkers, cross-referencing reference intervals, and resolving aliases..."):
+        with st.spinner("Executing multi-strategy biomarker extraction & reference verification..."):
             records, diagnostics = parse_report_with_diagnostics(final_text)
 
         if not records:
             st.error(
                 "❌ **No Recognized Biomarkers Found**\n\n"
-                f"• Extraction Pipeline: **{extraction_method}**\n"
-                f"• Characters Processed: **{len(final_text)}**\n"
+                f"• Pipeline: **{extraction_method}**\n"
+                f"• Characters Screened: **{len(final_text)}**\n"
                 f"• Lines Screened: **{diagnostics['total_lines']}**\n\n"
                 "The parser could not match standard clinical test labels in the extracted text. "
-                "Possible reasons:\n"
-                "1. Document text does not contain supported biomarkers (e.g. CBC, Metabolic, Lipid, Thyroid, Renal).\n"
-                "2. Image was blurry or characters were misread by OCR.\n"
-                "3. Test labels use proprietary or unsupported acronyms."
+                "Check the text preview above for OCR typos or unrecognized abbreviations."
             )
-            with st.expander("🔍 View Extracted Text for Manual Review", expanded=True):
+            with st.expander("🔍 Candidate Lines Detected", expanded=True):
                 st.text(final_text)
                 if diagnostics["unrecognized_candidates"]:
-                    st.markdown("**Lines with numbers or test-like patterns detected:**")
                     for cand in diagnostics["unrecognized_candidates"][:5]:
                         st.markdown(f"- `{cand}`")
             return
 
-        # Store in session history
         entry = add_report_to_history(source_label, source_kind, records, final_text, diagnostics)
         st.success(f"✅ Successfully identified {len(records)} clinical biomarkers from `{source_label}`!")
 
@@ -1463,13 +1785,13 @@ def render_analyze_view():
             for _, row in filtered_df.iterrows():
                 status_str = row["Status"]
                 if status_str == "Normal":
-                    badge_html = '<span class="badge-normal">🟢 Normal</span>'
+                    pill_html = '<span class="pill-normal">● Normal</span>'
                 elif "High" in status_str:
-                    badge_html = '<span class="badge-high">🔺 Potentially High</span>'
+                    pill_html = '<span class="pill-high">▲ Potentially High</span>'
                 elif "Low" in status_str:
-                    badge_html = '<span class="badge-low">🔻 Potentially Low</span>'
+                    pill_html = '<span class="pill-low">▼ Potentially Low</span>'
                 else:
-                    badge_html = '<span class="badge-review">⚠️ Review Needed</span>'
+                    pill_html = '<span class="pill-review">◆ Review Needed</span>'
 
                 with st.container():
                     r1, r2, r3, r4 = st.columns([3, 2, 2, 2])
@@ -1485,7 +1807,7 @@ def render_analyze_view():
                         st.markdown(f"**{row['Reference Range']}** {row['Unit']}")
                         st.caption(f"Range ({row['Range Source']})")
                     with r4:
-                        st.markdown(badge_html, unsafe_allow_html=True)
+                        st.markdown(pill_html, unsafe_allow_html=True)
                         st.caption("Classification")
                     st.divider()
 
@@ -1513,15 +1835,15 @@ def render_analyze_view():
                 )
 
 # ---------------------------------------------------------
-# 10. View: Report History
+# 11. View: Report History
 # ---------------------------------------------------------
 def render_history_view():
-    st.markdown("## 📋 Session Audit History")
-    st.caption("Log of all medical documents audited in the current runtime session. Disclosed: Session storage is temporary.")
+    st.subheader("📋 Session Audit Timeline")
+    st.caption("Chronological audit log of all clinical reports evaluated during the current session.")
 
     history = st.session_state["history"]
     if not history:
-        st.info("No reports have been audited in this session yet. Upload a report in 'Analyze Report' to track history.")
+        st.info("No reports have been audited in this session yet. Upload a report in 'Ingest & Analyze' to initiate tracking.")
         return
 
     summary_rows = []
@@ -1529,21 +1851,21 @@ def render_history_view():
         summary_rows.append({
             "Audit ID": h["id"],
             "Timestamp": h["timestamp"],
-            "Source / File Name": h["source_name"],
+            "Document Source": h["source_name"],
             "Format": h["source_type"],
-            "Biomarkers Found": h["total_count"],
+            "Biomarkers Screened": h["total_count"],
             "Out-of-Range": h["flagged_count"],
             "Normal": h["normal_count"]
         })
     st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
 
     st.markdown("---")
-    st.subheader("🔍 Inspect Historical Audit")
+    st.subheader("🔍 Historical Audit Inspector")
     selected_id = st.selectbox("Select Audit ID to inspect:", [h["id"] for h in history])
     selected_report = next((h for h in history if h["id"] == selected_id), None)
 
     if selected_report:
-        st.markdown(f"**Document**: `{selected_report['source_name']}` | **Audited At**: {selected_report['timestamp']}")
+        st.markdown(f"**Document**: `{selected_report['source_name']}` | **Audited At**: `{selected_report['timestamp']}`")
         st.dataframe(
             pd.DataFrame(selected_report["records"])[["Test Name", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]],
             use_container_width=True,
@@ -1558,36 +1880,36 @@ def render_history_view():
         st.rerun()
 
 # ---------------------------------------------------------
-# 11. View: Extraction Diagnostics
+# 12. View: Extraction Telemetry
 # ---------------------------------------------------------
 def render_diagnostics_view():
-    st.markdown("## 🔍 Extraction & OCR Diagnostics")
-    st.caption("Deep inspection of raw extracted text, recognized biomarker lines, and candidate unmatched lines.")
+    st.subheader("🔍 Extraction Telemetry & OCR Diagnostics")
+    st.caption("Technical deep-dive into digital text extraction, candidate line matching, and OCR character recognition.")
 
     diag = st.session_state.get("current_diagnostics")
     current_meta = st.session_state.get("current_meta")
 
     if not diag or not current_meta:
-        st.info("No active report diagnostics available. Analyze a report to inspect extraction telemetry.")
+        st.info("No active report telemetry available. Ingest and analyze a document to view extraction telemetry.")
         return
 
-    st.markdown(f"#### Audit: `{current_meta['id']}` ({current_meta['source_name']})")
+    st.markdown(f"#### Audit Telemetry: `{current_meta['id']}` ({current_meta['source_name']})")
     
     c1, c2, c3 = st.columns(3)
-    c1.metric("Total Lines Processed", diag["total_lines"])
+    c1.metric("Lines Processed", diag["total_lines"])
     c2.metric("Biomarkers Matched", diag["recognized_count"])
-    c3.metric("Unmatched Candidates", len(diag["unrecognized_candidates"]))
+    c3.metric("Candidate Unmatched Lines", len(diag["unrecognized_candidates"]))
 
     st.markdown("---")
-    st.subheader("✅ Successfully Recognized Biomarkers")
+    st.subheader("✅ Mapped Biomarkers")
     st.write(diag["recognized_labels"])
 
     st.markdown("---")
-    st.subheader("⚠️ Unrecognized Candidate Lines")
+    st.subheader("⚠️ Unmatched Candidate Lines")
     st.caption("Lines containing numbers or potential test names that were not mapped to the central registry:")
     if diag["unrecognized_candidates"]:
         for cand in diag["unrecognized_candidates"]:
-            st.markdown(f"<div class='diag-card'>{cand}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background: #111827; border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; font-family: monospace; font-size: 0.84rem; color: #38BDF8;'>{cand}</div>", unsafe_allow_html=True)
     else:
         st.success("Zero unmapped candidate lines detected.")
 
@@ -1596,35 +1918,27 @@ def render_diagnostics_view():
         st.text(current_meta["raw_text"])
 
 # ---------------------------------------------------------
-# 12. View: About & Safety
+# 13. View: Clinical Safety
 # ---------------------------------------------------------
 def render_about_view():
-    st.markdown("## ℹ️ About & Clinical Safety")
+    st.subheader("ℹ️ Clinical Safety, Reference Intervals & Methodology")
     
     st.markdown("""
     ### 🩺 Purpose & Scope
-    **Orca MedScan** is a clinical screening and healthcare intelligence prototype designed for **Orcathon 2026** (Healthcare & MedTech track).
-    Its goal is to assist patients and primary care clinicians in rapidly interpreting unstructured lab documents across multiple formats without privacy compromises.
+    **Orca MedScan** is a clinical decision-support and screening prototype developed for **Orcathon 2026** (Healthcare & MedTech track).
+    Its design philosophy bridges the gap between dense, complex laboratory reports and rapid, actionable clinical review without exposing sensitive patient health records to third-party cloud APIs.
 
     ---
 
-    ### 📁 Comprehensive Format Support
-    - **Digital PDFs**: Extracted using pure Python text streams (`pdfplumber`).
-    - **Scanned PDFs**: Automatically rendered to high-resolution images with automated Tesseract OCR fallback.
-    - **Raster Images**: Supports **PNG, JPG, JPEG, WEBP, BMP, and TIFF** formats with adaptive contrast preprocessing.
-    - **HEIC / HEIF**: Supported via `pillow-heif` decoder.
+    ### 🔒 Privacy-Preserving Enclave Architecture
+    - **100% Local Execution**: All digital document parsing (`pdfplumber`), image OCR (`pytesseract`), regex tokenization, and reference range comparisons execute exclusively in host memory.
+    - **Zero Cloud API Exposure**: Patient identifiers, dates of birth, test results, and scanned reports are never transmitted over the internet or sent to external LLMs.
 
     ---
 
-    ### 🔒 Privacy & Zero-Cloud API Architecture
-    - **100% Local Runtime**: All OCR, document parsing, regex extraction, and reference verification execute on the host machine.
-    - **Zero Data Leakage**: No patient identifiers, lab values, or medical reports are transmitted to external cloud APIs or third parties.
-
-    ---
-
-    ### 📐 Reference Interval Methodology
-    1. **Printed Laboratory Ranges (Primary Priority)**:
-       Clinical laboratories calibrate analyzers with specific assay reagents. Orca MedScan automatically extracts and respects reference ranges printed directly on the report.
+    ### 📐 Dynamic Reference Interval Verification
+    1. **Printed Laboratory Ranges (Highest Priority)**:
+       Different clinical laboratories calibrate analyzers with specific assay reagents. Orca MedScan automatically detects and respects reference ranges printed directly on the patient report.
     2. **Documented Adult Clinical Ranges (Fallback)**:
        When a report omits reference intervals, standard adult clinical ranges are applied and explicitly labeled as `Standard Adult Reference`.
     3. **Conservative Classification**:
@@ -1633,44 +1947,16 @@ def render_about_view():
     ---
 
     ### ⚠️ Medical Disclaimer
-    *This application is an educational and clinical screening prototype. It does not provide medical diagnoses, treatment plans, or clinical triaging. Patients should consult licensed healthcare providers for diagnostic interpretation.*
+    *This application is an educational and screening prototype. It does not provide medical diagnoses, treatment plans, or clinical triaging. Patients should consult licensed healthcare providers for diagnostic interpretation.*
     """)
 
 # ---------------------------------------------------------
-# 13. Main Application Controller
+# 14. Main Application Controller
 # ---------------------------------------------------------
 def main():
     init_session_state()
+    render_header_and_navigation()
 
-    # Sidebar
-    with st.sidebar:
-        st.title("🩺 Orca MedScan")
-        st.caption("Clinical Intelligence & Report Screening")
-        st.markdown("---")
-
-        st.subheader("⚡ Quick Actions")
-        if st.button("Load Sample Report (1-Click)", use_container_width=True, type="primary"):
-            records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
-            add_report_to_history("Metropolis Diagnostic Sample (MET-98421)", "Synthetic Sample", records, SYNTHETIC_REPORT, diag)
-            st.session_state["nav_view"] = "Dashboard"
-            st.rerun()
-
-        st.markdown("---")
-        total_history = len(st.session_state["history"])
-        st.caption(f"Audits in Session: **{total_history}**")
-
-        tess_ok = is_tesseract_available()
-        tess_desc = "Available (Active)" if tess_ok else "Not Installed (Text/Digital PDF only)"
-        st.caption(f"OCR Engine: **{tess_desc}**")
-        st.caption(f"HEIF Decoder: **{'Available' if HEIF_AVAILABLE else 'Not Available'}**")
-
-        st.markdown("---")
-        st.info("🔒 100% Local & Private. Zero patient data transmitted externally.")
-
-    # Top-Level Spacious Navigation Bar
-    render_navigation_bar()
-
-    # View Router
     view = st.session_state["nav_view"]
     if view == "Dashboard":
         render_dashboard_view()
