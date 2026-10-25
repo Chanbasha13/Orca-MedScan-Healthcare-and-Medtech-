@@ -67,6 +67,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
+# ---------------------------------------------------------
 # 1. Centralized Biomarker Registry & Reference Database
 # ---------------------------------------------------------
 REFERENCE_DB = [
@@ -128,13 +129,83 @@ REFERENCE_DB = [
             r"\bplatelet(?:s)?(?:\s+count)?\b",
             r"\bplt(?:\s+count)?\b",
             r"\bthrombocyte count\b",
-            r"\btotal platelet(?:s)?\b"
+            r"\bplatelet\b"
         ],
         "unit": "/mcL",
         "min": 150000.0,
         "max": 450000.0,
-        "desc": "Platelet fragments essential for hemostatic plug formation and vascular repair.",
-        "plain_note": "Low counts (thrombocytopenia) elevate bleeding tendencies; elevated counts occur with reactive inflammation or myeloproliferative response."
+        "desc": "Primary cellular fragments responsible for hemostatic plug formation and coagulation.",
+        "plain_note": "Low levels (thrombocytopenia) elevate bleeding risk; elevated counts indicate inflammation, iron deficiency, or reactive thrombocytosis."
+    },
+    {
+        "id": "mcv",
+        "name": "Mean Corpuscular Volume (MCV)",
+        "patterns": [
+            r"\bmean corpuscular volume\b",
+            r"\bmcv\b",
+            r"\bm\.c\.v\b"
+        ],
+        "unit": "fL",
+        "min": 80.0,
+        "max": 100.0,
+        "desc": "Average volume and physical size of individual red blood cells.",
+        "plain_note": "Low MCV indicates microcytic anemia (iron deficiency); high MCV indicates macrocytic anemia (B12 or folate deficiency)."
+    },
+    {
+        "id": "mch",
+        "name": "Mean Corpuscular Hemoglobin (MCH)",
+        "patterns": [
+            r"\bmean corpuscular hemo(?:a)?globin\b",
+            r"\bmch\b",
+            r"\bm\.c\.h\b"
+        ],
+        "unit": "pg",
+        "min": 27.0,
+        "max": 33.0,
+        "desc": "Average mass of hemoglobin present inside an individual red blood cell.",
+        "plain_note": "Tracks closely with MCV in classifying microcytic vs macrocytic anemias."
+    },
+    {
+        "id": "mchc",
+        "name": "Mean Corpuscular Hemoglobin Concentration (MCHC)",
+        "patterns": [
+            r"\bmchc\b",
+            r"\bm\.c\.h\.c\b",
+            r"\bmean corpuscular hemo(?:a)?globin conc(?:entration)?\b"
+        ],
+        "unit": "g/dL",
+        "min": 32.0,
+        "max": 36.0,
+        "desc": "Concentration of hemoglobin in a given volume of packed red blood cells.",
+        "plain_note": "Decreased in hypochromic anemias."
+    },
+    {
+        "id": "rdw",
+        "name": "Red Cell Distribution Width (RDW)",
+        "patterns": [
+            r"\bred cell distribution width\b",
+            r"\brdw(?:-cv|-sd)?\b",
+            r"\br\.d\.w\b"
+        ],
+        "unit": "%",
+        "min": 11.5,
+        "max": 15.0,
+        "desc": "Measure of the variation in red blood cell volume (anisocytosis).",
+        "plain_note": "Elevated RDW helps distinguish early iron deficiency anemia from thalassemia trait."
+    },
+    {
+        "id": "esr",
+        "name": "Erythrocyte Sedimentation Rate (ESR)",
+        "patterns": [
+            r"\berythrocyte sedimentation rate\b",
+            r"\besr\b",
+            r"\be\.s\.r\b"
+        ],
+        "unit": "mm/hr",
+        "min": 0.0,
+        "max": 20.0,
+        "desc": "Non-specific marker of systemic inflammation and acute phase response.",
+        "plain_note": "Elevated in infections, autoimmune diseases, and chronic inflammatory conditions."
     },
     {
         "id": "glucose_fasting",
@@ -153,8 +224,8 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 70.0,
         "max": 99.0,
-        "desc": "Blood glucose level following a minimum 8-hour overnight fast.",
-        "plain_note": "Values >= 100 mg/dL signify impaired fasting glucose or diabetes mellitus risk, warranting formal glycemic workup."
+        "desc": "Baseline glycemic level following a minimum 8-hour metabolic fast.",
+        "plain_note": "A value between 100-125 mg/dL indicates impaired fasting glucose (prediabetes); 126 mg/dL or higher on repeat tests indicates diabetes mellitus."
     },
     {
         "id": "glucose_pp",
@@ -171,8 +242,25 @@ REFERENCE_DB = [
         "unit": "mg/dL",
         "min": 70.0,
         "max": 140.0,
-        "desc": "Blood glucose concentration measured 2 hours post-meal.",
-        "plain_note": "Levels exceeding 140 mg/dL indicate reduced peripheral insulin clearance or postprandial glucose intolerance."
+        "desc": "Postprandial glycemic clearance measured 2 hours following a standardized meal.",
+        "plain_note": "140-199 mg/dL indicates impaired glucose tolerance; 200 mg/dL or higher suggests diabetes."
+    },
+    {
+        "id": "glucose",
+        "name": "Blood Glucose (Sugar)",
+        "patterns": [
+            r"\b(?:serum |plasma |blood )?glucose\b",
+            r"\bblood sugar\b",
+            r"\brandom blood sugar\b",
+            r"\brbs\b",
+            r"\br\.b\.s\b",
+            r"\bs\.?\s*glucose\b"
+        ],
+        "unit": "mg/dL",
+        "min": 70.0,
+        "max": 140.0,
+        "desc": "Circulating blood glucose level (unspecified fasting or random).",
+        "plain_note": "Screening indicator of carbohydrate metabolism and glycemic regulation."
     },
     {
         "id": "hba1c",
@@ -189,8 +277,8 @@ REFERENCE_DB = [
         "unit": "%",
         "min": 4.0,
         "max": 5.6,
-        "desc": "Weighted 60-to-90 day circulating mean glycemic index.",
-        "plain_note": "5.7% to 6.4% indicates prediabetes; values >= 6.5% meet established criteria for diabetic clinical review."
+        "desc": "Long-term glycemic biomarker indexing average blood glucose concentration over 90-120 days.",
+        "plain_note": "Values from 5.7% to 6.4% indicate prediabetes; 6.5% or higher on two separate tests confirms diabetes mellitus."
     },
     {
         "id": "cholesterol",
@@ -203,85 +291,111 @@ REFERENCE_DB = [
             r"\bt\.c\b",
             r"\bcholesterol\s*[,:]?\s*total\b",
             r"\btotal chol\b",
-            r"\bchol\b"
+            r"\bcholesterol\b"
         ],
         "unit": "mg/dL",
         "min": 125.0,
         "max": 200.0,
-        "desc": "Overall circulating cholesterol content in serum.",
-        "plain_note": "Values exceeding 200 mg/dL accelerate atherogenic cardiovascular risk, meriting lipid fraction review."
+        "desc": "Sum of all circulating lipoprotein fractions carrying sterol rings.",
+        "plain_note": "Values above 200 mg/dL warrant cardiovascular risk stratification and lifestyle intervention."
     },
     {
         "id": "hdl",
         "name": "HDL Cholesterol ('Good' Cholesterol)",
         "patterns": [
-            r"\bhdl(?:\s*-\s*c)?(?:\s+cholesterol)?\b",
-            r"\bhigh density lipoprotein\b"
+            r"\bhdl cholesterol\b",
+            r"\bhdl-c\b",
+            r"\bhigh-density lipoprotein\b",
+            r"\bhdl\b",
+            r"\bh\.d\.l\b",
+            r"\bhol cholesterol\b",
+            r"\bhol\b"
         ],
         "unit": "mg/dL",
         "min": 40.0,
-        "max": 90.0,
-        "desc": "Scavenges excess circulating cholesterol for reverse transport to the liver.",
-        "plain_note": "Concentrations below 40 mg/dL represent an independent cardiovascular risk marker; higher figures provide atheroprotective benefits."
+        "max": 60.0,
+        "desc": "Atheroprotective lipoprotein facilitating reverse cholesterol transport to hepatocytes.",
+        "plain_note": "Levels below 40 mg/dL (men) or 50 mg/dL (women) associate with heightened coronary risk."
     },
     {
         "id": "ldl",
         "name": "LDL Cholesterol ('Bad' Cholesterol)",
         "patterns": [
-            r"\bldl(?:\s*-\s*c)?(?:\s+cholesterol)?\b",
-            r"\blow density lipoprotein\b"
+            r"\bldl cholesterol\b",
+            r"\bldl-c\b",
+            r"\blow-density lipoprotein\b",
+            r"\bldl\b",
+            r"\bl\.d\.l\b",
+            r"\blol cholesterol\b",
+            r"\blol\b"
         ],
         "unit": "mg/dL",
         "min": 50.0,
         "max": 100.0,
-        "desc": "Primary atherogenic carrier responsible for arterial plaque accumulation.",
-        "plain_note": "Elevated LDL promotes coronary arterial plaque progression; primary target for lipid-lowering lifestyle or medical interventions."
+        "desc": "Atherogenic lipoprotein driving plaque initiation and arterial wall foam cell formation.",
+        "plain_note": "Elevations accelerate arterial stenosis; clinical targets adjust downward based on existing cardiac risk."
     },
     {
         "id": "vldl",
         "name": "VLDL Cholesterol",
         "patterns": [
-            r"\bvldl(?:\s*-\s*c)?(?:\s+cholesterol)?\b",
-            r"\bvery low density lipoprotein\b"
+            r"\bvldl cholesterol\b",
+            r"\bvldl-c\b",
+            r"\bvery low-density lipoprotein\b",
+            r"\bvldl\b",
+            r"\bv\.l\.d\.l\b"
         ],
         "unit": "mg/dL",
-        "min": 5.0,
+        "min": 10.0,
         "max": 30.0,
-        "desc": "Endogenous triglyceride transporter manufactured in hepatocytes.",
-        "plain_note": "Elevated alongside serum triglycerides in secondary metabolic dysregulation."
+        "desc": "Hepatically derived triglyceride-rich transport vehicle.",
+        "plain_note": "Elevated VLDL correlates with hypertriglyceridemia, metabolic syndrome, and pancreatitis risk."
     },
     {
         "id": "triglycerides",
         "name": "Triglycerides",
         "patterns": [
-            r"\btriglyceride(?:s)?\b",
+            r"\btriglycerides\b",
             r"\btg\b",
             r"\bt\.g\b",
-            r"\btrigs?\b",
             r"\bserum triglycerides\b",
-            r"\bs\.?\s*triglycerides\b"
+            r"\btrigs\b"
         ],
         "unit": "mg/dL",
         "min": 40.0,
         "max": 150.0,
-        "desc": "Dominant dietary and endogenous storage lipid.",
-        "plain_note": "Concentrations above 150 mg/dL are correlated with insulin resistance, diet composition, and cardiovascular strain."
+        "desc": "Glycerol esterified lipid molecules representing primary energy storage circulating in blood.",
+        "plain_note": "Levels from 150-199 mg/dL are borderline high; values above 500 mg/dL carry risk of acute pancreatitis."
     },
     {
         "id": "creatinine",
         "name": "Serum Creatinine",
         "patterns": [
-            r"\b(?:serum )?creatinine\b",
+            r"\bserum creatinine\b",
+            r"\bcreatinine\b",
             r"\bs\.?\s*creatinine\b",
-            r"\bs\.?\s*creat\b",
-            r"\bcreat\b",
-            r"\bcreatin\b"
+            r"\bcreat\b"
         ],
         "unit": "mg/dL",
         "min": 0.6,
         "max": 1.2,
-        "desc": "Metabolic breakdown marker cleared strictly via glomerular filtration.",
-        "plain_note": "Elevations suggest reduced renal clearance or impaired filtration, requiring medical review of renal status and hydration."
+        "desc": "End-product of muscle phosphocreatine catabolism cleared exclusively by glomerular filtration.",
+        "plain_note": "An elevation signals decreased glomerular filtration rate (GFR) requiring renal evaluation."
+    },
+    {
+        "id": "egfr",
+        "name": "Estimated Glomerular Filtration Rate (eGFR)",
+        "patterns": [
+            r"\bestimated glomerular filtration rate\b",
+            r"\begfr\b",
+            r"\be-gfr\b",
+            r"\bgfr\b"
+        ],
+        "unit": "mL/min/1.73m2",
+        "min": 60.0,
+        "max": 130.0,
+        "desc": "Calculated measure of kidney filtering capacity derived from serum creatinine and demographics.",
+        "plain_note": "Values below 60 mL/min/1.73m2 for more than 3 months indicate chronic kidney disease (CKD)."
     },
     {
         "id": "bun",
@@ -289,19 +403,15 @@ REFERENCE_DB = [
         "patterns": [
             r"\bblood urea nitrogen\b",
             r"\bbun\b",
-            r"\bb\.u\.n\b",
-            r"\bblood urea\b",
-            r"\bserum urea\b",
-            r"\bs\.?\s*urea\b",
-            r"\burea\b"
+            r"\bb\.u\.n\b"
         ],
         "unit": "mg/dL",
         "min": 7.0,
         "max": 21.0,
-        "desc": "End byproduct of protein deamination excreted by functional nephrons.",
-        "plain_note": "Elevations occur in hypovolemia, high dietary protein consumption, or intrinsic renal impairment."
+        "desc": "Nitrogenous waste molecule reflecting hepatic urea cycle synthesis and renal clearance.",
+        "plain_note": "Rises in prerenal azotemia, acute kidney injury, upper GI bleeding, or high protein intake."
     },
-    {
+        {
         "id": "alt_sgpt",
         "name": "ALT / SGPT (Liver Enzyme)",
         "patterns": [
@@ -309,13 +419,15 @@ REFERENCE_DB = [
             r"\bs\.g\.p\.t\b",
             r"\balt\b",
             r"\ba\.l\.t\b",
-            r"\balanine aminotransferase\b"
+            r"\balanine aminotransferase\b",
+            r"\bsgpt\s*\(?alt\)?\b",
+            r"\bsgpt\s*[/|I]\s*alt\b"
         ],
         "unit": "U/L",
         "min": 7.0,
         "max": 55.0,
-        "desc": "Cytosolic hepatocyte enzyme released into circulation upon cellular stress.",
-        "plain_note": "Transient or chronic elevations signify liver inflammation, steatosis, medication effects, or acute hepatic insult."
+        "desc": "Cytosolic hepatocyte transaminase serving as a primary biomarker for hepatocellular injury.",
+        "plain_note": "Substantial elevation reflects acute hepatitis, drug-induced liver injury, or ischemic hepatopathy."
     },
     {
         "id": "ast_sgot",
@@ -325,13 +437,15 @@ REFERENCE_DB = [
             r"\bs\.g\.o\.t\b",
             r"\bast\b",
             r"\ba\.s\.t\b",
-            r"\baspartate aminotransferase\b"
+            r"\baspartate aminotransferase\b",
+            r"\bsgot\s*\(?ast\)?\b",
+            r"\bsgot\s*[/|I]\s*ast\b"
         ],
         "unit": "U/L",
         "min": 8.0,
         "max": 48.0,
-        "desc": "Enzyme concentrated within hepatic parenchymal, skeletal, and myocardial cells.",
-        "plain_note": "Interpreted in tandem with ALT to distinguish hepatic vs non-hepatic sources of cellular turnover."
+        "desc": "Mitochondrial and cytosolic enzyme present in hepatocytes, cardiac myocytes, and skeletal muscle.",
+        "plain_note": "AST exceeding ALT (ratio > 2.0) is suggestive of alcoholic hepatitis or advanced cirrhosis."
     },
     {
         "id": "alp",
@@ -345,8 +459,37 @@ REFERENCE_DB = [
         "unit": "U/L",
         "min": 44.0,
         "max": 147.0,
-        "desc": "Biliary and bone matrix hydrolase enzyme.",
-        "plain_note": "High values indicate biliary flow obstruction, cholestatic hepatopathy, or active osteoblastic bone turnover."
+        "desc": "Zinc metalloenzyme located primarily in bile canaliculi and osteoblast membranes.",
+        "plain_note": "Elevated in cholestatic liver diseases, biliary obstruction, and bone disorders."
+    },
+    {
+        "id": "total_protein",
+        "name": "Total Protein",
+        "patterns": [
+            r"\btotal protein\b",
+            r"\bserum total protein\b",
+            r"\bs\.?\s*total protein\b",
+            r"\bserum protein\b"
+        ],
+        "unit": "g/dL",
+        "min": 6.0,
+        "max": 8.3,
+        "desc": "Composite measurement of serum albumin and globulin fractions.",
+        "plain_note": "Altered in nutritional deficiency, hepatic failure, and plasma cell dyscrasias."
+    },
+    {
+        "id": "albumin",
+        "name": "Serum Albumin",
+        "patterns": [
+            r"\bserum albumin\b",
+            r"\balbumin\b",
+            r"\bs\.?\s*albumin\b"
+        ],
+        "unit": "g/dL",
+        "min": 3.5,
+        "max": 5.2,
+        "desc": "Major circulating protein maintaining colloid oncotic pressure and transporting hormones and drugs.",
+        "plain_note": "Decreased in cirrhosis, nephrotic syndrome, severe malnutrition, and chronic inflammation."
     },
     {
         "id": "bilirubin_total",
@@ -354,14 +497,14 @@ REFERENCE_DB = [
         "patterns": [
             r"\btotal bilirubin\b",
             r"\bbilirubin\s*[,:]?\s*total\b",
-            r"\bserum bilirubin\b",
-            r"\bs\.?\s*bilirubin\b"
+            r"\bs\.?\s*bilirubin\b",
+            r"\bbilirubin\b"
         ],
         "unit": "mg/dL",
         "min": 0.2,
         "max": 1.2,
-        "desc": "Heme catabolic product processed and conjugated by hepatocytes.",
-        "plain_note": "Accumulation causes clinical jaundice and suggests hemolysis, hepatic metabolic congestion, or biliary blockage."
+        "desc": "Breakdown product of hemoglobin catabolism conjugated by hepatic glucuronyltransferase.",
+        "plain_note": "Elevations cause clinical jaundice and reflect hemolytic conditions, biliary obstruction, or hepatitis."
     },
     {
         "id": "tsh",
@@ -375,22 +518,22 @@ REFERENCE_DB = [
         "unit": "mIU/L",
         "min": 0.4,
         "max": 4.5,
-        "desc": "Pituitary feedback hormone modulating thyroid thyroxine output.",
-        "plain_note": "Elevated TSH signals compensatory drive for sluggish thyroid activity (hypothyroidism); low TSH reflects hyperthyroid state."
+        "desc": "Anterior pituitary glycoprotein regulating thyroidal production of thyroxine (T4) and triiodothyronine (T3).",
+        "plain_note": "Values > 4.5 mIU/L suggest primary hypothyroidism; values < 0.4 mIU/L suggest hyperthyroidism."
     },
     {
         "id": "uric_acid",
         "name": "Serum Uric Acid",
         "patterns": [
-            r"\b(?:serum )?uric acid\b",
-            r"\bs\.?\s*uric acid\b",
-            r"\burate\b"
+            r"\buric acid\b",
+            r"\bserum uric acid\b",
+            r"\bs\.?\s*uric acid\b"
         ],
         "unit": "mg/dL",
         "min": 3.5,
         "max": 7.2,
-        "desc": "Terminal oxidation product of purine nucleoside metabolism.",
-        "plain_note": "Hyperuricemia elevates the clinical risk for monosodium urate crystallization (gout) or uric acid nephrolithiasis."
+        "desc": "Final oxidation product of exogenous and purine nucleotide metabolism.",
+        "plain_note": "Hyperuricemia (> 7.0 mg/dL) precipitates monosodium urate crystal arthritis (gout) and nephrolithiasis."
     },
     {
         "id": "calcium",
@@ -436,7 +579,6 @@ REFERENCE_DB = [
     }
 ]
 
-# ---------------------------------------------------------
 # 2. Sample Synthetic Medical Report (For 1-Click Demo)
 # ---------------------------------------------------------
 SYNTHETIC_REPORT = """METROPOLIS DIAGNOSTIC PATHOLOGY LABORATORY
@@ -476,9 +618,15 @@ End of Report. Authenticated by Dr. K. Sharma (MD, Pathology).
 """
 
 # ---------------------------------------------------------
+# ---------------------------------------------------------
 # 3. Robust Extraction & Pre-Cleaning Engine
 # ---------------------------------------------------------
 NUMBER_REGEX = re.compile(r"(?<![A-Za-z0-9.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:,\d{1,2})?|\d+(?:\.\d+)?)(?![0-9.])")
+
+UNIT_REGEX = re.compile(
+    r"(?:(?:\b(?:g/d[Ll]|g/[Ll]|mg/d[Ll]|mg/[Ll]|cells/mc[Ll]|cells/u[Ll]|mil/mc[Ll]|million/mc[Ll]|mIU/[Ll]|uIU/m[Ll]|µIU/m[Ll]|pg/m[Ll]|ng/m[Ll]|ng/d[Ll]|mcg/d[Ll]|ug/d[Ll]|µg/d[Ll]|U/[Ll]|IU/[Ll]|f[Ll]|pg|mm/hr|mm/1st\s*hr|m[Ll]/min(?:/1\.73m2)?|mmol/[Ll]|umol/[Ll]|µmol/[Ll]|mEq/[Ll]|meq/[Ll])\b)|(?<![A-Za-z0-9])(?:/mc[Ll]|/u[Ll]|%)(?![A-Za-z0-9]))",
+    re.IGNORECASE
+)
 
 def clean_num_str(raw: str) -> float:
     """Intelligently converts strings with commas (either decimals or thousands) to float."""
@@ -498,23 +646,27 @@ def pre_clean_ocr_line(raw: str) -> str:
     s = s.replace("—", " - ").replace("§", " ").replace("°", " ").replace("‘", " ").replace("’", " ")
     s = re.sub(r"\.{2,}", " ", s)
 
-    # Split joined words: LeucocyteCount -> Leucocyte Count
-    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", s)
+    # Split joined words: LeucocyteCount -> Leucocyte Count (preserve dL, mL, uL, mcL)
+    s = re.sub(r"([a-z])([A-KM-Z])", r"\1 \2", s)
 
     # Separate attached punctuation: PLT( -> PLT (
     s = re.sub(r"([A-Za-z0-9])([(\[:])", r"\1 \2", s)
     s = re.sub(r"([)\]:])([A-Za-z0-9])", r"\1 \2", s)
 
     # Normalize clinical acronym OCR distortions
-    s = re.sub(r"\b[Hh]b[Aa]?[lt1][cC]?\b", "HbA1c", s)
+    s = re.sub(r"\b[Hh]b\s*[Aa]?[lt1][cC]?\b", "HbA1c", s)
     s = re.sub(r"\b[Hh]ate\b", "HbA1c", s)
     s = re.sub(r"\b[Tt]o[lt]al\s*[Cc]hol[a-z]*\b", "Total Cholesterol", s, flags=re.IGNORECASE)
-    s = re.sub(r"\b[Hh][Dd][Ll]\s*([Cc]hol[a-z]*)", r"HDL \1", s, flags=re.IGNORECASE)
-    s = re.sub(r"\b[Ll][Oo0][Ll]\s*([Cc]hol[a-z]*)", r"LDL \1", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Hh][Oo0][Ll]\s*([Cc]hol[a-z]*)?", "HDL Cholesterol", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Ll][Oo0][Ll]\s*([Cc]hol[a-z]*)?", "LDL Cholesterol", s, flags=re.IGNORECASE)
     s = re.sub(r"\b[Tt][Aa]\s*\(?[Tt]na[a-z]*\b", "Triglycerides", s, flags=re.IGNORECASE)
     s = re.sub(r"\b[Tt]rigs?\b", "Triglycerides", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Ss][Gg][Pp][Tt]\s*[I|/]\s*[Aa][Ll][Tt]\)?\b", "SGPT (ALT)", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Ss][Gg][Oo0][Tt]\s*[I|/]\s*[Aa][Ss][Tt]\)?\b", "SGOT (AST)", s, flags=re.IGNORECASE)
     s = re.sub(r"\b[Ss]a\s*[Pp][Tt]i?\s*[Aa]?[Ll]?[Tt]?\b", "SGPT", s)
     s = re.sub(r"\b1[Hh]\b", "TSH", s)
+    s = re.sub(r"\bm\s*IU\b", "mIU", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bu\s*IU\b", "uIU", s, flags=re.IGNORECASE)
     s = re.sub(r"\b[Pp]lat[a-z]*\s*[Cc]oun[a-z]*\b", "Platelet Count", s, flags=re.IGNORECASE)
 
     # Fix contextual numeric OCR errors: IO5 -> 105, O.85 -> 0.85, 2I8 -> 218
@@ -525,43 +677,248 @@ def pre_clean_ocr_line(raw: str) -> str:
 
     return s.strip()
 
-def extract_printed_range(line: str):
-    interval_match = re.search(r"(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
-    if interval_match:
+def extract_printed_range_with_span(line: str):
+    """
+    Extracts printed reference intervals (e.g. 13.0 - 17.5, < 200, > 60)
+    and returns (low, high, display_label, span).
+    """
+    m = re.search(r"(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
+    if m:
         try:
-            low = clean_num_str(interval_match.group(1))
-            high = clean_num_str(interval_match.group(2))
+            low = clean_num_str(m.group(1))
+            high = clean_num_str(m.group(2))
             if low <= high:
-                return low, high, f"{low} - {high}"
+                return low, high, f"{low} - {high}", m.span()
         except Exception:
             pass
 
-    less_match = re.search(r"<\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
-    if less_match:
+    m = re.search(r"<\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
+    if m:
         try:
-            high = clean_num_str(less_match.group(1))
-            return 0.0, high, f"< {high}"
+            high = clean_num_str(m.group(1))
+            return 0.0, high, f"< {high}", m.span()
         except Exception:
             pass
 
-    more_match = re.search(r">\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
-    if more_match:
+    m = re.search(r">\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
+    if m:
         try:
-            low = clean_num_str(more_match.group(1))
-            return low, float("inf"), f"> {low}"
+            low = clean_num_str(m.group(1))
+            return low, float("inf"), f"> {low}", m.span()
         except Exception:
             pass
 
-    return None, None, None
+    return None, None, None, None
+
+def extract_printed_range(line: str):
+    low, high, label, _ = extract_printed_range_with_span(line)
+    return low, high, label
 
 def detect_printed_flag(line: str) -> str:
-    if re.search(r"\b(?:H|HIGH|\*)\b", line, re.IGNORECASE):
+    """
+    Detects laboratory flags (High, Low, Abnormal, Normal) while strictly
+    ignoring unit strings like /L and %.
+    """
+    clean = UNIT_REGEX.sub(" ", line)
+    if re.search(r"(?<![/A-Za-z0-9])(?:H|HIGH|ABOVE)(?![/A-Za-z0-9])|▲", clean, re.IGNORECASE):
         return "High"
-    if re.search(r"\b(?:L|LOW)\b", line, re.IGNORECASE):
+    if re.search(r"(?<![/A-Za-z0-9])(?:L|LOW|BELOW)(?![/A-Za-z0-9])|▼", clean, re.IGNORECASE):
         return "Low"
+    if re.search(r"(?<![/A-Za-z0-9])(?:A|ABN|ABNORMAL|CRITICAL|ALERT|FLAG)(?![/A-Za-z0-9])|\*", clean, re.IGNORECASE):
+        return "Abnormal"
+    if re.search(r"\b(?:NORMAL|NORM|WITHIN RANGE|DESIRABLE|NEGATIVE)\b", clean, re.IGNORECASE):
+        return "Normal"
     return ""
 
+def detect_file_format(file_bytes: bytes, filename: str = "") -> str:
+    """
+    Detects the true document format by inspecting magic bytes / file signatures,
+    falling back to filename extension only if magic bytes are indeterminate.
+    Supports PDF, PNG, JPG/JPEG, WEBP, BMP, TIFF, HEIC/HEIF.
+    """
+    if not file_bytes:
+        return "Unknown"
+
+    header = file_bytes[:32]
+
+    # PDF signature
+    if header.startswith(b"%PDF"):
+        return "PDF"
+
+    # PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    if header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "PNG"
+
+    # JPEG signature: FF D8 FF
+    if header.startswith(b"\xff\xd8\xff"):
+        return "JPG"
+
+    # WEBP signature: RIFF....WEBP
+    if len(header) >= 12 and header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+        return "WEBP"
+
+    # BMP signature: BM
+    if header.startswith(b"BM"):
+        return "BMP"
+
+    # TIFF signature: II*\x00 (little-endian) or MM\x00* (big-endian)
+    if header.startswith(b"II*\x00") or header.startswith(b"MM\x00*"):
+        return "TIFF"
+
+    # HEIC / HEIF signatures in ISO Base Media File Format (ftyp box)
+    if len(header) >= 12 and header[4:8] == b"ftyp":
+        brand = header[8:12].lower()
+        if brand in (b"heic", b"heix", b"hevc", b"hevx", b"mif1", b"msf1"):
+            return "HEIC"
+
+    # Fallback to extension if magic bytes ambiguous
+    if filename:
+        ext = os.path.splitext(filename)[1].lower().lstrip(".")
+        if ext in ("pdf", "png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "heic", "heif"):
+            if ext in ("jpeg", "jpg"):
+                return "JPG"
+            if ext in ("tif", "tiff"):
+                return "TIFF"
+            if ext in ("heic", "heif"):
+                return "HEIC"
+            return ext.upper()
+
+    return "Unknown"
+
+def _evaluate_biomarker_line(clean_l: str, raw_l: str, seen_biomarkers: set):
+    """
+    Inspects a single line or combined block line against REFERENCE_DB.
+    Returns (record, matched_bio_id) if successfully parsed, else (None, None).
+    Preserves measured values even when they equal range boundaries (p_min or p_max).
+    """
+    for bio in REFERENCE_DB:
+        if bio["id"] in seen_biomarkers:
+            continue
+
+        matched_pat = None
+        match_span = None
+        for pat in bio["patterns"]:
+            m = re.search(pat, clean_l, re.IGNORECASE)
+            if m:
+                matched_pat = pat
+                match_span = (m.start(), m.end())
+                break
+
+        if not matched_pat or match_span is None:
+            continue
+
+        p_min, p_max, p_label, r_span = extract_printed_range_with_span(clean_l)
+        printed_flag = detect_printed_flag(clean_l)
+
+        # Find all number tokens with spans
+        all_nums = [(m.group(1), m.start(), m.end()) for m in NUMBER_REGEX.finditer(clean_l)]
+        if not all_nums:
+            continue
+
+        # Filter out numbers inside the printed range span
+        non_range_nums = [n for n in all_nums if not (r_span and n[1] >= r_span[0] and n[2] <= r_span[1])]
+
+        # Filter out numbers inside unit strings (e.g. 1.73 in 1.73m2, 10 in 10^3)
+        valid_nums = []
+        for n in non_range_nums:
+            post = clean_l[n[2]:n[2]+5].strip()
+            if post.startswith("m2") or post.startswith("m^2") or post.startswith("^"):
+                continue
+            valid_nums.append(n)
+
+        if not valid_nums:
+            continue
+
+        # Prefer numbers that appear after the biomarker name (skips leading list numbers like "1.")
+        after_name_nums = [n for n in valid_nums if n[1] >= match_span[1]]
+        chosen_token = after_name_nums[0] if after_name_nums else valid_nums[0]
+
+        try:
+            measured_val = clean_num_str(chosen_token[0])
+        except Exception:
+            continue
+
+        # Extract printed unit from the report text or fallback to canonical unit
+        u_match = UNIT_REGEX.search(clean_l)
+        extracted_unit = u_match.group(0) if u_match else bio["unit"]
+
+        # Determine reference interval and source
+        if p_min is not None and p_max is not None:
+            eff_min = p_min
+            eff_max = p_max
+            range_display = p_label
+            range_source = "Printed on Report"
+        elif bio.get("min") is not None and bio.get("max") is not None:
+            eff_min = bio["min"]
+            eff_max = bio["max"]
+            range_display = f"{eff_min} - {eff_max}"
+            range_source = "Standard Adult Reference"
+        else:
+            eff_min = None
+            eff_max = None
+            range_display = "Unspecified (Needs Review)"
+            range_source = "Unspecified (Needs Review)"
+
+        # Clinical status classification
+        if eff_min is not None and eff_max is not None:
+            if measured_val < eff_min:
+                status = "Potentially Low"
+                category = "flagged"
+            elif measured_val > eff_max:
+                status = "Potentially High"
+                category = "flagged"
+            else:
+                if printed_flag in ("High", "Low", "Abnormal"):
+                    status = f"Report Flagged ({printed_flag})"
+                    category = "flagged"
+                else:
+                    status = "Normal"
+                    category = "normal"
+        else:
+            if printed_flag == "High":
+                status = "Report Flagged (High)"
+                category = "flagged"
+            elif printed_flag == "Low":
+                status = "Report Flagged (Low)"
+                category = "flagged"
+            elif printed_flag == "Abnormal":
+                status = "Report Flagged (Abnormal)"
+                category = "flagged"
+            else:
+                status = "Uncertain / Manual Review"
+                category = "uncertain"
+
+        # Determine label for traceability
+        orig_label = raw_l.split()[0] if raw_l.split() else bio["name"]
+        if ":" in raw_l:
+            orig_label = raw_l.split(":")[0].strip()
+        elif "|" in raw_l:
+            orig_label = raw_l.split("|")[0].strip()
+
+        record = {
+            "Test Name": bio["name"],
+            "Original Label": orig_label,
+            "Measured Value": measured_val,
+            "Unit": extracted_unit,
+            "Reference Range": range_display,
+            "Range Source": range_source,
+            "Status": status,
+            "Category": category,
+            "Clinical Context": bio["desc"],
+            "Plain Explanation": bio.get("plain_note", ""),
+            "Report Flag": printed_flag,
+            "Raw Line": raw_l
+        }
+        return record, bio["id"]
+
+    return None, None
+
 def parse_report_with_diagnostics(raw_text: str):
+    """
+    Robust multi-strategy laboratory report parser.
+    Supports in-line results, colon-separated formats, pipe/tab-delimited tables,
+    and multiline layouts. Preserves measured values at reference boundaries.
+    """
     raw_lines = [l for l in raw_text.splitlines() if l.strip()]
     cleaned_lines = [pre_clean_ocr_line(l) for l in raw_lines]
 
@@ -577,157 +934,53 @@ def parse_report_with_diagnostics(raw_text: str):
             return not has_test
         return False
 
-    # Strategy 1: In-line matching
+    # Strategy 1: Delimited row and in-line matching
     for idx, (raw_l, line) in enumerate(zip(raw_lines, cleaned_lines)):
         if is_metadata_line(line):
             continue
 
-        for bio in REFERENCE_DB:
-            if bio["id"] in seen_biomarkers:
-                continue
-
-            matched = any(re.search(pat, line, re.IGNORECASE) for pat in bio["patterns"])
-            if not matched:
-                continue
-
-            numbers = NUMBER_REGEX.findall(line)
-            if not numbers:
-                continue
-
-            p_min, p_max, p_label = extract_printed_range(line)
-            printed_flag = detect_printed_flag(line)
-
-            measured_val = None
-            if p_min is not None and p_max is not None:
-                for num_str in numbers:
-                    try:
-                        val = clean_num_str(num_str)
-                        if p_max != float("inf") and (abs(val - p_min) < 0.0001 or abs(val - p_max) < 0.0001):
-                            continue
-                        measured_val = val
-                        break
-                    except Exception:
-                        continue
-            else:
-                try:
-                    measured_val = clean_num_str(numbers[0])
-                except Exception:
-                    continue
-
-            if measured_val is None:
-                continue
-
-            if p_min is not None and p_max is not None:
-                eff_min = p_min
-                eff_max = p_max
-                range_display = p_label
-                range_source = "Printed on Report"
-            else:
-                eff_min = bio["min"]
-                eff_max = bio["max"]
-                range_display = f"{eff_min} - {eff_max}"
-                range_source = "Standard Adult Reference"
-
-            if eff_min is not None and eff_max is not None:
-                if measured_val < eff_min:
-                    status = "Potentially Low"
-                    category = "flagged"
-                elif measured_val > eff_max:
-                    status = "Potentially High"
-                    category = "flagged"
-                else:
-                    status = "Normal"
-                    category = "normal"
-            else:
-                status = "Uncertain / Manual Review"
-                category = "uncertain"
-
-            extracted_records.append({
-                "Test Name": bio["name"],
-                "Original Label": raw_l.split()[0] if raw_l.split() else bio["name"],
-                "Measured Value": measured_val,
-                "Unit": bio["unit"],
-                "Reference Range": range_display,
-                "Range Source": range_source,
-                "Status": status,
-                "Category": category,
-                "Clinical Context": bio["desc"],
-                "Plain Explanation": bio.get("plain_note", ""),
-                "Report Flag": printed_flag,
-                "Raw Line": raw_l
-            })
-            seen_biomarkers.add(bio["id"])
+        record, bio_id = _evaluate_biomarker_line(line, raw_l, seen_biomarkers)
+        if record:
+            extracted_records.append(record)
+            seen_biomarkers.add(bio_id)
             recognized_indices.add(idx)
 
-    # Strategy 2: Two-line / block matching
+    # Strategy 2: Two-line and three-line block matching
     for idx in range(len(cleaned_lines) - 1):
         if idx in recognized_indices:
             continue
         line_cur = cleaned_lines[idx]
-        line_next = cleaned_lines[idx + 1]
 
-        for bio in REFERENCE_DB:
-            if bio["id"] in seen_biomarkers:
-                continue
+        # Check if line_cur contains a biomarker name with no numeric value
+        has_num_cur = bool(NUMBER_REGEX.search(line_cur))
+        if has_num_cur:
+            continue
 
-            matched = any(re.search(p, line_cur, re.IGNORECASE) for p in bio["patterns"])
-            if not matched:
-                continue
+        # Test 2-line combination
+        line_2 = f"{line_cur} {cleaned_lines[idx + 1]}"
+        raw_2 = f"{raw_lines[idx]} -> {raw_lines[idx + 1]}"
+        record, bio_id = _evaluate_biomarker_line(line_2, raw_2, seen_biomarkers)
 
-            numbers = NUMBER_REGEX.findall(line_next)
-            if not numbers:
-                continue
-
-            p_min, p_max, p_label = extract_printed_range(line_next)
-            try:
-                measured_val = clean_num_str(numbers[0])
-            except Exception:
-                continue
-
-            if p_min is not None and p_max is not None:
-                eff_min = p_min
-                eff_max = p_max
-                range_display = p_label
-                range_source = "Printed on Report"
-            else:
-                eff_min = bio["min"]
-                eff_max = bio["max"]
-                range_display = f"{eff_min} - {eff_max}"
-                range_source = "Standard Adult Reference"
-
-            if eff_min is not None and eff_max is not None:
-                if measured_val < eff_min:
-                    status = "Potentially Low"
-                    category = "flagged"
-                elif measured_val > eff_max:
-                    status = "Potentially High"
-                    category = "flagged"
-                else:
-                    status = "Normal"
-                    category = "normal"
-            else:
-                status = "Uncertain / Manual Review"
-                category = "uncertain"
-
-            extracted_records.append({
-                "Test Name": bio["name"],
-                "Original Label": line_cur.split()[0] if line_cur.split() else bio["name"],
-                "Measured Value": measured_val,
-                "Unit": bio["unit"],
-                "Reference Range": range_display,
-                "Range Source": range_source,
-                "Status": status,
-                "Category": category,
-                "Clinical Context": bio["desc"],
-                "Plain Explanation": bio.get("plain_note", ""),
-                "Report Flag": detect_printed_flag(line_next),
-                "Raw Line": f"{raw_lines[idx]} -> {raw_lines[idx+1]}"
-            })
-            seen_biomarkers.add(bio["id"])
+        if record:
+            extracted_records.append(record)
+            seen_biomarkers.add(bio_id)
             recognized_indices.add(idx)
             recognized_indices.add(idx + 1)
+            continue
 
-    # Diagnostic candidate lines
+        # Test 3-line combination if idx + 2 exists
+        if idx + 2 < len(cleaned_lines):
+            line_3 = f"{line_cur} {cleaned_lines[idx + 1]} {cleaned_lines[idx + 2]}"
+            raw_3 = f"{raw_lines[idx]} -> {raw_lines[idx + 1]} -> {raw_lines[idx + 2]}"
+            record, bio_id = _evaluate_biomarker_line(line_3, raw_3, seen_biomarkers)
+            if record:
+                extracted_records.append(record)
+                seen_biomarkers.add(bio_id)
+                recognized_indices.add(idx)
+                recognized_indices.add(idx + 1)
+                recognized_indices.add(idx + 2)
+
+    # Collect unrecognized diagnostic candidates
     for idx, (raw_l, line) in enumerate(zip(raw_lines, cleaned_lines)):
         if idx in recognized_indices or is_metadata_line(line):
             continue
@@ -740,7 +993,13 @@ def parse_report_with_diagnostics(raw_text: str):
         "total_lines": len(raw_lines),
         "recognized_count": len(extracted_records),
         "recognized_labels": [r["Test Name"] for r in extracted_records],
-        "unrecognized_candidates": unrecognized_candidates
+        "unrecognized_candidates": unrecognized_candidates,
+        "status_code": "NO_BIOMARKERS_DETECTED" if len(extracted_records) == 0 else "OK",
+        "guidance": (
+            "No standard laboratory biomarkers were recognized. The document text is visible in Phase 2 above; "
+            "please verify that the document contains supported laboratory tests or edit the text and click 'Re-Analyze Text Stream'."
+            if len(extracted_records) == 0 else "Analysis completed successfully."
+        )
     }
 
     return extracted_records, diagnostics
@@ -749,7 +1008,6 @@ def parse_report_text(raw_text: str):
     records, _ = parse_report_with_diagnostics(raw_text)
     return records
 
-# ---------------------------------------------------------
 # 4. Multi-Format Ingestion Engine
 # ---------------------------------------------------------
 def configure_tesseract_environment():
@@ -863,20 +1121,49 @@ def extract_text_from_image(image_bytes):
         import pytesseract
         pytesseract.pytesseract.tesseract_cmd = tess_cmd
 
+        if hasattr(image_bytes, "getvalue") and len(image_bytes.getvalue()) == 0:
+            return False, "Image document is empty (0 bytes).", "Empty Image"
+
+        from PIL import ImageSequence
         img = Image.open(image_bytes)
         img_format = img.format or "Image"
-        proc_img = preprocess_image_for_ocr(img)
 
-        ocr_text = pytesseract.image_to_string(proc_img, config="--psm 6")
-        if not ocr_text.strip():
-            ocr_text = pytesseract.image_to_string(proc_img)
+        ocr_frames = []
+        total_frames = getattr(img, "n_frames", 1)
 
-        if not ocr_text.strip():
+        for frame_idx, frame in enumerate(ImageSequence.Iterator(img)):
+            proc_img = preprocess_image_for_ocr(frame)
+            frame_text = pytesseract.image_to_string(proc_img, config="--psm 6")
+            if len(frame_text.strip()) < 10:
+                frame_text = pytesseract.image_to_string(proc_img)
+            if len(frame_text.strip()) < 10:
+                frame_text = pytesseract.image_to_string(proc_img, config="--psm 11")
+
+            # Check if rotation is needed when text is empty
+            if len(frame_text.strip()) < 10:
+                for angle in (90, 180, 270):
+                    rotated = proc_img.rotate(angle, expand=True)
+                    rot_text = pytesseract.image_to_string(rotated, config="--psm 6")
+                    if len(rot_text.strip()) >= 10:
+                        frame_text = rot_text
+                        break
+
+            if frame_text.strip():
+                if total_frames > 1:
+                    ocr_frames.append(f"--- Frame {frame_idx + 1} ---\n{frame_text.strip()}")
+                else:
+                    ocr_frames.append(frame_text.strip())
+
+        combined_text = "\n\n".join(ocr_frames)
+        if not combined_text.strip():
             return False, "No readable text detected in image.", img_format
 
-        return True, ocr_text, img_format
+        return True, combined_text, img_format
     except Exception as e:
-        return False, f"Image decoding / OCR error: {str(e)}", "Error"
+        err_msg = str(e)
+        if "heif" in err_msg.lower() or "heic" in err_msg.lower():
+            return False, f"HEIC decoding failed. Ensure pillow-heif is registered: {err_msg}", "HEIC"
+        return False, f"Image decoding / OCR error: {err_msg}", "Error"
 
 def extract_text_from_pdf(pdf_bytes):
     try:
@@ -884,31 +1171,80 @@ def extract_text_from_pdf(pdf_bytes):
         extracted_pages = []
         tess_cmd = get_tesseract_command()
 
+        if hasattr(pdf_bytes, "getvalue") and len(pdf_bytes.getvalue()) == 0:
+            return False, "PDF document is empty (0 bytes).", "Empty PDF", 0
+
         with pdfplumber.open(pdf_bytes) as pdf:
             total_pages = len(pdf.pages)
             if total_pages == 0:
                 return False, "PDF contains zero pages.", "Empty", 0
 
-            for page in pdf.pages:
-                text = page.extract_text()
-                if text and text.strip():
-                    extracted_pages.append(text.strip())
+            max_pages = min(total_pages, 50)
+
+            for idx in range(max_pages):
+                page = pdf.pages[idx]
+                page_lines = []
+
+                # 1. Extract structured tables if present
+                try:
+                    tables = page.extract_tables()
+                    if tables:
+                        for table in tables:
+                            for row in table:
+                                if not row:
+                                    continue
+                                clean_cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
+                                if clean_cells:
+                                    page_lines.append(" | ".join(clean_cells))
+                except Exception:
+                    pass
+
+                # 2. Extract layout-aware text
+                try:
+                    layout_text = page.extract_text(layout=True)
+                    if layout_text and layout_text.strip():
+                        for line in layout_text.splitlines():
+                            line_s = line.strip()
+                            if line_s and line_s not in page_lines:
+                                page_lines.append(line_s)
+                except Exception:
+                    pass
+
+                # 3. Fallback to standard text
+                if not page_lines:
+                    try:
+                        raw_text = page.extract_text()
+                        if raw_text and raw_text.strip():
+                            page_lines.extend([l.strip() for l in raw_text.splitlines() if l.strip()])
+                    except Exception:
+                        pass
+
+                if page_lines:
+                    header = f"--- Page {idx + 1} ---" if total_pages > 1 else ""
+                    if header:
+                        extracted_pages.append(header + "\n" + "\n".join(page_lines))
+                    else:
+                        extracted_pages.append("\n".join(page_lines))
 
             combined_text = "\n\n".join(extracted_pages)
+
             if len(combined_text.strip()) < 30:
                 if not tess_cmd:
-                    return False, "Scanned PDF detected without available OCR engine.", "Scanned PDF (No OCR)", total_pages
+                    return False, "Scanned PDF detected without available OCR engine on host system.", "Scanned PDF (No OCR)", total_pages
 
                 import pytesseract
                 pytesseract.pytesseract.tesseract_cmd = tess_cmd
                 ocr_pages = []
 
-                for idx, page in enumerate(pdf.pages):
+                for idx in range(max_pages):
+                    page = pdf.pages[idx]
                     page_img = page.to_image(resolution=200).original
                     proc_img = preprocess_image_for_ocr(page_img)
                     page_text = pytesseract.image_to_string(proc_img, config="--psm 6")
-                    if not page_text.strip():
+                    if len(page_text.strip()) < 10:
                         page_text = pytesseract.image_to_string(proc_img)
+                    if len(page_text.strip()) < 10:
+                        page_text = pytesseract.image_to_string(proc_img, config="--psm 11")
                     if page_text.strip():
                         ocr_pages.append(f"--- Page {idx + 1} ---\n{page_text.strip()}")
 
@@ -918,13 +1254,15 @@ def extract_text_from_pdf(pdf_bytes):
                 method = "Digital PDF Stream"
 
             if not combined_text.strip():
-                return False, "No readable text retrieved from PDF.", method, total_pages
+                return False, "No readable laboratory text retrieved from PDF.", method, total_pages
 
             return True, combined_text, method, total_pages
     except Exception as e:
-        return False, f"PDF extraction failed: {str(e)}", "Error", 0
+        err_msg = str(e)
+        if "password" in err_msg.lower():
+            return False, "Password-protected or encrypted PDF cannot be accessed without credentials.", "Encrypted PDF", 0
+        return False, f"PDF extraction failed: {err_msg}", "Error", 0
 
-# ---------------------------------------------------------
 # 5. ReportLab PDF Clinical Summary Generator
 # ---------------------------------------------------------
 def generate_pdf_audit_report(meta: dict, records: list) -> bytes:

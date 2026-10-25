@@ -41,6 +41,7 @@ from app import (
     parse_report_with_diagnostics,
     extract_text_from_pdf,
     extract_text_from_image,
+    detect_file_format,
     is_tesseract_available,
     get_tesseract_command,
     get_tesseract_diagnostics,
@@ -178,28 +179,35 @@ def get_benchmark():
 async def analyze_upload(file: UploadFile = File(...)):
     filename = file.filename or "uploaded_document"
     contents = await file.read()
+    if not contents or len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty (0 bytes).")
+
     file_bytes = io.BytesIO(contents)
-    fname_lower = filename.lower()
+    detected_format = detect_file_format(contents, filename)
 
     extracted_text = ""
     extraction_method = "Unknown"
     source_kind = "Unknown"
 
-    if fname_lower.endswith(".pdf"):
+    if detected_format == "PDF":
         success, text_res, method, pages = extract_text_from_pdf(file_bytes)
         if not success:
             raise HTTPException(status_code=422, detail=f"PDF extraction error: {text_res}")
         extracted_text = text_res
         extraction_method = method
-        source_kind = "PDF"
-    else:
-        # Image pipeline (PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC)
-        success, text_res, detected_format = extract_text_from_image(file_bytes)
+        source_kind = f"PDF ({pages} page{'s' if pages != 1 else ''})"
+    elif detected_format in ("PNG", "JPG", "WEBP", "BMP", "TIFF", "HEIC"):
+        success, text_res, detected_format_img = extract_text_from_image(file_bytes)
         if not success:
             raise HTTPException(status_code=422, detail=f"OCR parsing error: {text_res}")
         extracted_text = text_res
-        extraction_method = f"Tesseract OCR ({detected_format})"
-        source_kind = f"Image ({detected_format})"
+        extraction_method = f"Tesseract OCR ({detected_format_img})"
+        source_kind = f"Image ({detected_format_img})"
+    else:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported format '{detected_format}'. Supported formats: PDF (Digital/Scanned), PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC."
+        )
 
     # Parse with telemetry
     records, diagnostics = parse_report_with_diagnostics(extracted_text)
@@ -246,7 +254,7 @@ def export_csv(req: ExportCSVRequest):
         raise HTTPException(status_code=400, detail="No records available to export.")
     df = pd.DataFrame(req.records)
     # Reorder columns cleanly if present
-    cols = [c for c in ["Test Name", "Original Label", "Measured Value", "Unit", "Reference Range", "Range Source", "Status", "Plain Explanation"] if c in df.columns]
+    cols = [c for c in ["Test Name", "Original Label", "Measured Value", "Unit", "Reference Range", "Range Source", "Report Flag", "Status", "Plain Explanation"] if c in df.columns]
     if cols:
         df = df[cols]
     csv_str = df.to_csv(index=False)

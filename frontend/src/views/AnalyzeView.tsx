@@ -104,8 +104,9 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
   };
 
   // Run Pasted Text Analysis
-  const handleProcessText = async () => {
-    if (!pastedText.trim()) {
+  const handleProcessText = async (textOverride?: string) => {
+    const textToAnalyze = (typeof textOverride === 'string' ? textOverride : pastedText).trim();
+    if (!textToAnalyze) {
       setErrorMessage('Please enter or paste report text.');
       return;
     }
@@ -116,7 +117,10 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
       const res = await fetch('/api/analyze/text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: pastedText, source_label: 'Direct Clinical Stream' }),
+        body: JSON.stringify({
+          text: textToAnalyze,
+          source_label: typeof textOverride === 'string' ? 'Edited Clinical Stream' : 'Direct Clinical Stream',
+        }),
       });
 
       const data = await res.json();
@@ -301,7 +305,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
             />
             <div className="flex justify-end">
               <button
-                onClick={handleProcessText}
+                onClick={() => handleProcessText()}
                 disabled={isProcessing || !pastedText.trim()}
                 className="px-5 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-bold transition-all shadow-paper-ivory flex items-center gap-2"
               >
@@ -355,13 +359,11 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               </p>
             </div>
             <button
-              onClick={() => {
-                setPastedText(extractedStream);
-                handleProcessText();
-              }}
-              className="px-3.5 py-1.5 rounded-lg border border-ivory-300 dark:border-charcoal-700 text-xs font-bold text-charcoal-700 dark:text-ivory-300 hover:border-forest-700"
+              onClick={() => handleProcessText(extractedStream)}
+              disabled={isProcessing || !extractedStream.trim()}
+              className="px-3.5 py-1.5 rounded-lg border border-ivory-300 dark:border-charcoal-700 text-xs font-bold text-charcoal-700 dark:text-ivory-300 hover:border-forest-700 hover:bg-forest-50 dark:hover:bg-forest-950/40 transition-colors"
             >
-              Re-Analyze Text Stream
+              {isProcessing ? 'Analyzing...' : 'Re-Analyze Text Stream'}
             </button>
           </div>
 
@@ -444,72 +446,118 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               >
                 {t('gen_normal')} ({analysisResult.normal_count})
               </button>
+              {analysisResult.uncertain_count > 0 && (
+                <button
+                  onClick={() => setFilterCategory('uncertain')}
+                  className={`px-3 py-1 rounded-md transition-all ${
+                    filterCategory === 'uncertain' ? 'bg-white dark:bg-charcoal-900 text-amber-700 dark:text-amber-400 shadow-paper-ivory' : 'text-charcoal-500'
+                  }`}
+                >
+                  Review ({analysisResult.uncertain_count})
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Results Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-ivory-100 dark:bg-charcoal-800/60 text-charcoal-600 dark:text-ivory-300 font-mono font-bold uppercase tracking-wider border-y border-ivory-200 dark:border-charcoal-800">
-                <tr>
-                  <th className="py-3 px-4 font-serif font-bold text-xs capitalize">{t('dash_th_biomarker')}</th>
-                  <th className="py-3 px-4">{t('dash_th_measured')}</th>
-                  <th className="py-3 px-4">{t('dash_th_unit')}</th>
-                  <th className="py-3 px-4">{t('dash_th_ref_interval')}</th>
-                  <th className="py-3 px-4">{t('dash_th_calibration')}</th>
-                  <th className="py-3 px-4">{t('dash_th_classification')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ivory-200 dark:divide-charcoal-800 text-charcoal-700 dark:text-ivory-300">
-                {filteredRecords.map((row, idx) => {
-                  const isHigh = row.Status.includes('High');
-                  const isLow = row.Status.includes('Low');
-                  const isNorm = row.Status === 'Normal';
+          {/* Results Table or Zero-Biomarker Informational State */}
+          {analysisResult.total_count === 0 ? (
+            <div className="p-8 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/80 text-center space-y-3 my-4">
+              <AlertCircle className="w-9 h-9 text-amber-600 dark:text-amber-400 mx-auto" />
+              <h4 className="font-serif font-bold text-lg text-charcoal-900 dark:text-ivory-100">
+                0 Standard Clinical Biomarkers Recognized
+              </h4>
+              <p className="text-xs text-charcoal-600 dark:text-ivory-300 max-w-xl mx-auto leading-relaxed">
+                {analysisResult.raw_text.length > 0 ? (
+                  <>
+                    The document was processed and text is visible in <b>Phase 2 above ({analysisResult.raw_text.length} characters)</b>, but no supported laboratory tests (e.g., Hemoglobin, Glucose, Lipid Profile, Renal Function) were detected with parseable numeric measurements.
+                  </>
+                ) : (
+                  <>No readable laboratory text could be recovered from this document. Please verify file format, image contrast, or scan resolution.</>
+                )}
+              </p>
+              <p className="text-[11px] text-charcoal-500 dark:text-ivory-400 font-mono">
+                Diagnostic status: {analysisResult.diagnostics?.status_code || 'INSPECT_STREAM'}
+              </p>
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    const el = document.querySelector('textarea');
+                    el?.focus();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-bold transition-all shadow-paper-ivory"
+                >
+                  Edit Extracted Text in Phase 2
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-ivory-100 dark:bg-charcoal-800/60 text-charcoal-600 dark:text-ivory-300 font-mono font-bold uppercase tracking-wider border-y border-ivory-200 dark:border-charcoal-800">
+                  <tr>
+                    <th className="py-3 px-4 font-serif font-bold text-xs capitalize">{t('dash_th_biomarker')}</th>
+                    <th className="py-3 px-4">{t('dash_th_measured')}</th>
+                    <th className="py-3 px-4">{t('dash_th_unit')}</th>
+                    <th className="py-3 px-4">{t('dash_th_ref_interval')}</th>
+                    <th className="py-3 px-4">{t('dash_th_calibration')}</th>
+                    <th className="py-3 px-4">{t('dash_th_classification')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ivory-200 dark:divide-charcoal-800 text-charcoal-700 dark:text-ivory-300">
+                  {filteredRecords.map((row, idx) => {
+                    const isHigh = row.Status.includes('High');
+                    const isLow = row.Status.includes('Low');
+                    const isNorm = row.Status === 'Normal';
+                    const isUncertain = row.Category === 'uncertain' || row.Status.includes('Uncertain');
 
-                  return (
-                    <tr key={idx} className="hover:bg-ivory-50/50 dark:hover:bg-charcoal-800/40 transition-colors">
-                      <td className="py-3 px-4 font-semibold text-charcoal-900 dark:text-ivory-50">
-                        {row['Test Name']}
-                        <span className="block text-[10px] text-charcoal-400 font-mono font-normal">Orig: {row['Original Label']}</span>
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-charcoal-900 dark:text-ivory-50">
-                        {row['Measured Value']}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-charcoal-500 dark:text-ivory-400">
-                        {row.Unit}
-                      </td>
-                      <td className="py-3 px-4 font-mono">
-                        {row['Reference Range']}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-ivory-200 dark:bg-charcoal-800 text-charcoal-600 dark:text-ivory-400 font-mono">
-                          {row['Range Source']}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-mono font-bold ${
-                            isHigh
-                              ? 'bg-rose-50 dark:bg-rose-950/60 text-clinical-danger border border-rose-200 dark:border-rose-900'
-                              : isLow
-                              ? 'bg-amber-50 dark:bg-amber-950/60 text-clinical-warning border border-amber-200 dark:border-amber-900'
-                              : isNorm
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-clinical-normal border border-emerald-200 dark:border-emerald-900'
-                              : 'bg-ivory-200 dark:bg-charcoal-800 text-charcoal-700 dark:text-ivory-300'
-                          }`}
-                        >
-                          {isHigh && '▲ '}
-                          {isLow && '▼ '}
-                          {isNorm && '✓ '}
-                          {row.Status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={idx} className="hover:bg-ivory-50/50 dark:hover:bg-charcoal-800/40 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-charcoal-900 dark:text-ivory-50">
+                          {row['Test Name']}
+                          <span className="block text-[10px] text-charcoal-400 font-mono font-normal">Orig: {row['Original Label']}</span>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-charcoal-900 dark:text-ivory-50">
+                          {row['Measured Value']}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-charcoal-500 dark:text-ivory-400">
+                          {row.Unit}
+                        </td>
+                        <td className="py-3 px-4 font-mono">
+                          {row['Reference Range']}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-ivory-200 dark:bg-charcoal-800 text-charcoal-600 dark:text-ivory-400 font-mono">
+                            {row['Range Source']}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-mono font-bold ${
+                              isHigh
+                                ? 'bg-rose-50 dark:bg-rose-950/60 text-clinical-danger border border-rose-200 dark:border-rose-900'
+                                : isLow
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-clinical-warning border border-amber-200 dark:border-amber-900'
+                                : isNorm
+                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-clinical-normal border border-emerald-200 dark:border-emerald-900'
+                                : isUncertain
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                : 'bg-ivory-200 dark:bg-charcoal-800 text-charcoal-700 dark:text-ivory-300'
+                            }`}
+                          >
+                            {isHigh && '▲ '}
+                            {isLow && '▼ '}
+                            {isNorm && '✓ '}
+                            {isUncertain && '⚠ '}
+                            {row.Status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

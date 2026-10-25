@@ -16,6 +16,8 @@ export interface DiagnosticsData {
   recognized_count: number;
   recognized_labels: string[];
   unrecognized_candidates: string[];
+  status_code?: string;
+  guidance?: string;
 }
 
 export interface ReportAudit {
