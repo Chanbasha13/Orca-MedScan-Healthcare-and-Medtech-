@@ -75,7 +75,8 @@ def run_tests():
     if os.path.exists(pdf_path):
         with open(pdf_path, "rb") as f:
             pdf_bytes = io.BytesIO(f.read())
-        pdf_text = extract_text_from_pdf(pdf_bytes)
+        res = extract_text_from_pdf(pdf_bytes)
+        pdf_text = res[1] if isinstance(res, tuple) else res
         assert len(pdf_text.strip()) > 50, "PDF text extraction returned empty"
         pdf_records = parse_report_text(pdf_text)
         assert len(pdf_records) >= 8, f"Expected >= 8 biomarkers from PDF, got {len(pdf_records)}"
@@ -91,7 +92,9 @@ def run_tests():
         if tess_ok:
             with open(png_path, "rb") as f:
                 img_bytes = io.BytesIO(f.read())
-            success, ocr_text = extract_text_from_image(img_bytes)
+            res_img = extract_text_from_image(img_bytes)
+            success = res_img[0]
+            ocr_text = res_img[1]
             assert success, f"OCR failed: {ocr_text}"
             assert len(ocr_text.strip()) > 30, "OCR returned empty text"
             print("✓ Image OCR extraction verified on PNG sample.")

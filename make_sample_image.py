@@ -41,3 +41,4 @@ def create_sample_image(filename="sample_patient_report.png"):
 
 if __name__ == "__main__":
     create_sample_image()
+

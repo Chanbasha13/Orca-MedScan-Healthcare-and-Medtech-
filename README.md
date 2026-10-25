@@ -1,42 +1,35 @@
-# 🩺 Orca MedScan — Medical Intelligence Dashboard & Report Analyzer
+# 🩺 Orca MedScan — Medical Intelligence Dashboard & Robust Report Analyzer
 
 > **Orcathon 2026 — Healthcare & MedTech Track**  
-> An open-source, zero-cost clinical screening dashboard to ingest medical lab documents (PDF, PNG, JPG, JPEG, Text), cross-reference printed and clinical reference intervals, and flag potentially out-of-range indicators.
+> An open-source, resilient clinical screening dashboard to ingest digital/scanned PDFs, multi-format images (PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC), and text reports. Cross-references laboratory reference intervals and highlights abnormal indicators with 100% local privacy.
 
 ---
 
 ## 📌 Problem & Clinical Need
-Patients and busy general practitioners are often overwhelmed by dense, unstructured lab reports (Complete Blood Counts, Metabolic Panels, Lipid Panels, Thyroid Panels). Abnormal results can easily get lost in complex tabular layouts.
+Patients and primary care physicians frequently grapple with dense, unstructured lab reports. Abnormal biomarkers can easily be overlooked in complex tabular layouts or lost when OCR misreads units or decimal points.
 
-**Orca MedScan** solves this by providing:
-1. **Multi-Format Ingestion**: Ingests **PDFs**, scanned image reports (**PNG, JPG, JPEG** via OCR), and **raw text**.
-2. **Medical Intelligence Dashboard**: Real-time summary cards, aggregate biomarker status distributions, and priority anomaly alerts.
-3. **Dynamic Reference Detection**: Prioritizes reference intervals printed on the report; seamlessly falls back to standard adult clinical references when omitted.
-4. **Transparent & Safe**: Categorizes findings into `Normal`, `Potentially High`, `Potentially Low`, or `Review Needed` without speculating or making unauthorized clinical diagnoses.
-5. **Interactive Exploration**: Filter findings by status, search by test name, inspect OCR output in an editable review box, and export structured findings as **CSV**.
-6. **1-Click Judge Demo**: Built-in synthetic test report allows instant evaluation without hunting for files.
-
----
-
-## 🚀 Key Features
-
-| Feature | Description |
-|---|---|
-| **Multi-Format Ingestion** | Supports digital PDFs (`pdfplumber`) and scanned image reports (`pytesseract` + Pillow) with an editable pre-analysis review box. |
-| **Medical Intelligence Dashboard** | Real-time session analytics: Reports Analyzed, Indicators Screened, Out-of-Range Flags, and Needs Clinical Review. |
-| **Biomarker Distribution Charts** | Lightweight native visualizations displaying the proportion of normal vs out-of-range indicators. |
-| **Priority Anomaly Alerts** | Highlights out-of-range biomarkers immediately with deviations and plain-language clinical notes. |
-| **Session Audit History** | Retains all evaluated reports in an active session log for comparative review. |
-| **100% Zero-Cost & Private** | Runs completely locally. Zero data is sent to external cloud APIs, eliminating patient data leakage. |
-| **Streamlit Cloud Ready** | Includes `packages.txt` (`tesseract-ocr`) and `requirements.txt` for 1-click free deployment. |
+**Orca MedScan** solves this through:
+1. **Multi-Format Ingestion**: Ingests **digital PDFs**, **scanned PDFs** (via automated OCR page rendering), and **images** (**PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC/HEIF**).
+2. **Multi-Strategy Parser**: Solves unit-attachment bugs (`13.5g/dL`), multiline label-value pairs, colon/dot leader formatting, and resolves dozens of clinical aliases (`HGB`, `TLC`, `PLT`, `FBS`, `TC`, `TG`, `BUN`, `SGPT`, etc.).
+3. **Extraction Diagnostics & Verification**: Never silently hides failures. Shows extraction pipelines, character counts, recognized labels, and unrecognized candidate lines with an editable pre-analysis review box.
+4. **Medical Intelligence Dashboard**: Spacious, modern SaaS layout featuring session aggregate metrics, biomarker status distribution charts, and priority anomaly callouts.
+5. **Session Audit History**: Maintains a non-cloud, privacy-preserving session audit trail with comparative inspection.
+6. **Dual Export**: Download structured data as **CSV** or generate formal clinical audit reports as **PDF** (via ReportLab).
+7. **1-Click Judge Demo**: Pre-configured synthetic panel allows instant evaluation without requiring external files.
 
 ---
 
-## 🛠️ Tech Stack
-- **Language**: Python 3.10+
-- **UI & Dashboard**: Streamlit
-- **Document Processing**: `pdfplumber` (PDFs), `pytesseract` & `Pillow` (Images)
-- **Data & Analytics**: Pandas
+## 🛠️ Supported File Formats & Pipelines
+
+| Format | Extraction Pipeline | Handling Details |
+|---|---|---|
+| **Digital PDF** | `pdfplumber` | Pure Python digital text stream extraction. |
+| **Scanned PDF** | `pdfplumber` + `pytesseract` | Automatically renders pages to 200 DPI images when no embedded text is detected, followed by page-by-page OCR. |
+| **PNG, JPG, JPEG** | `pytesseract` + `Pillow` | Auto-orients EXIF, scales small text, enhances contrast, and executes PSM 6 / default OCR. |
+| **WEBP** | `pytesseract` + `Pillow` | Native decoding and contrast enhancement. |
+| **BMP, TIFF** | `pytesseract` + `Pillow` | Lossless / high-resolution document scanning. |
+| **HEIC / HEIF** | `pillow-heif` + `Pillow` | Decoded via libheif wrapper; graceful fallback if uninstalled. |
+| **Pasted Text** | Direct Input | Zero-failure manual input and editing. |
 
 ---
 
@@ -48,12 +41,12 @@ git clone https://github.com/YOUR_USERNAME/orca-medscan.git
 cd orca-medscan
 ```
 
-### 2. Install Tesseract OCR (For Image Uploads)
+### 2. Install Tesseract OCR (For Scanned PDFs and Images)
 - **macOS**: `brew install tesseract`
-- **Ubuntu/Debian**: `sudo apt-get install tesseract-ocr`
+- **Ubuntu/Debian**: `sudo apt-get install tesseract-ocr tesseract-ocr-eng libtesseract-dev`
 - **Windows**: Download installer from GitHub UB-Mannheim/tesseract
 
-*(Note: If Tesseract is not installed, PDF and Text modes still work 100% out of the box).*
+*(Note: On Streamlit Community Cloud, `packages.txt` automatically provisions `tesseract-ocr`).*
 
 ### 3. Create virtual environment & install dependencies
 ```bash
@@ -70,13 +63,27 @@ Open `http://localhost:8501` in your browser.
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Comprehensive Automated Test Suite (13 Checks)
+Execute all 13 end-to-end verifications:
 ```bash
-python3 test_engine.py
+python3 test_suite.py
 ```
-Validates biomarker parsing, reference interval comparisons, fallback defaults, PDF reading, OCR extraction, and CSV generation.
+Tests:
+1. Digital PDF extraction (`sample_patient_report.pdf`)
+2. PNG / JPG OCR extraction (`sample_patient_report.png`)
+3. WEBP image OCR (`sample_patient_report.webp`)
+4. BMP and TIFF format support
+5. Scanned PDF with automated OCR fallback (`scanned_report.pdf`)
+6. Biomarker abbreviations (`HGB`, `TLC`, `PLT`, `FBS`, `TC`, `TG`, `BUN`, etc.)
+7. Numerical precision (`13.5g/dL`), thousands separators (`240,000`), and abnormal flags (`H`, `L`)
+8. All-normal test report (zero false alarms)
+9. Mixed out-of-range report (both high and low)
+10. Unknown labels & non-medical text isolation
+11. Corrupt and unsupported files handling
+12. Empty input handling
+13. CSV export and ReportLab PDF generation
 
 ---
 
 ## ⚠️ Medical Disclaimer
-*Orca MedScan is an informational screening prototype developed for hackathon demonstration. It does NOT provide clinical diagnoses, prognosis, or treatment decisions. Laboratory reference intervals vary based on equipment calibration, geographic standards, and individual patient demographics. Always consult a qualified medical professional for health concerns.*
+*Orca MedScan is an educational and clinical decision-support screening prototype developed for hackathon demonstration. It does NOT provide clinical diagnoses, prognosis, or pharmaceutical prescriptions. Laboratory reference intervals vary based on equipment calibration, geographic standards, and individual patient demographics. Always consult a licensed medical professional for health concerns.*
