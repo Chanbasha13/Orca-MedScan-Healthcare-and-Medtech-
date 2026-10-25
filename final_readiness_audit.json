@@ -1,0 +1,210 @@
+{
+  "1_groq_api": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "Status verified: configured=True, model=qwen/qwen3.8-27b, latency=0.006s"
+      ],
+      [
+        true,
+        "Real Groq backend request succeeded in 1.97s using qwen/qwen3.8-27b"
+      ],
+      [
+        true,
+        "Medical disclaimer verified: 'Orca MedScan Assistant provides educational screening suppor...'"
+      ],
+      [
+        true,
+        "API key security verified (no gsk_ in response)"
+      ]
+    ]
+  },
+  "2_uploads": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "Digital PDF (sample_patient_report.pdf): Success (8 biomarkers extracted via Digital PDF Stream)"
+      ],
+      [
+        true,
+        "PNG OCR (sample_patient_report.png): Success (10 biomarkers extracted via Tesseract OCR (PNG))"
+      ],
+      [
+        true,
+        "WEBP OCR (sample_patient_report.webp): Success (12 biomarkers extracted via Tesseract OCR (WEBP))"
+      ],
+      [
+        true,
+        "Scanned PDF Fallback (scanned_report.pdf): Success (10 biomarkers extracted via Scanned PDF (OCR Rendered))"
+      ],
+      [
+        true,
+        "Corrupted file handled gracefully with HTTP 422"
+      ]
+    ]
+  },
+  "3_ocr_accuracy": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "Biomarker names parsed cleanly across 16 benchmark tests: True"
+      ],
+      [
+        true,
+        "Biomarker values numerically formatted: True"
+      ],
+      [
+        true,
+        "Biomarker standard units present: True"
+      ],
+      [
+        true,
+        "Reference intervals established: True"
+      ],
+      [
+        true,
+        "WEBP OCR accuracy: 12 biomarkers extracted from real image"
+      ],
+      [
+        true,
+        "Key biomarkers recognized in WEBP OCR (Hb=True, Glucose=True, Lipid=True)"
+      ]
+    ]
+  },
+  "4_clinical_flags_disclaimers": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "Flagging distribution verified: High=5, Low=3, Normal=8"
+      ],
+      [
+        true,
+        "Hemoglobin (10.8 g/dL) correctly flagged Potentially Low: True"
+      ],
+      [
+        true,
+        "Fasting Glucose (132 mg/dL) correctly flagged Potentially High: True"
+      ],
+      [
+        true,
+        "Platelet Count (240,000) correctly flagged Normal: True"
+      ],
+      [
+        true,
+        "Clinical PDF audit export generated (3192 bytes): True"
+      ],
+      [
+        true,
+        "Medical disclaimer embedded in CSV export: True"
+      ]
+    ]
+  },
+  "5_auth_history_isolation": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "Enclave evaluator login authenticated: True"
+      ],
+      [
+        true,
+        "Invalid password rejected with HTTP 401: True"
+      ],
+      [
+        true,
+        "Vault credential security: PBKDF2 salt+hash verified (no plaintext): True"
+      ],
+      [
+        true,
+        "Non-existent route handled with 404: True"
+      ]
+    ]
+  },
+  "6_navigation_theme_mobile": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "All 7 Navigation views operational: True"
+      ],
+      [
+        true,
+        "All 7 Indic languages operational: True"
+      ],
+      [
+        true,
+        "Light / Charcoal Night Mode toggle verified: True"
+      ],
+      [
+        true,
+        "Mobile 375px responsive (scrollWidth == 375px, no overflow): True"
+      ],
+      [
+        true,
+        "Zero browser console errors / unhandled exceptions: True"
+      ]
+    ]
+  },
+  "7_security_env_protection": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "/.env correctly denied with HTTP 404"
+      ],
+      [
+        true,
+        "Production JavaScript bundle audited: zero API keys leaked: True"
+      ],
+      [
+        true,
+        ".gitignore contains .env and credential protections: True"
+      ],
+      [
+        true,
+        "CORS middleware configured in FastAPI: True"
+      ]
+    ]
+  },
+  "8_errors_perf_deployment": {
+    "status": "PASS",
+    "details": [
+      [
+        true,
+        "Frontend build (tsc + vite build) succeeds without compile errors: True"
+      ],
+      [
+        true,
+        "Endpoint /api/health: 6.9ms (HTTP 200)"
+      ],
+      [
+        true,
+        "Endpoint /api/system/status: 2.7ms (HTTP 200)"
+      ],
+      [
+        true,
+        "Endpoint /api/benchmark: 5.3ms (HTTP 200)"
+      ],
+      [
+        true,
+        "Endpoint /api/assistant/status: 1.3ms (HTTP 200)"
+      ],
+      [
+        true,
+        "All core API endpoints respond under 500ms: True"
+      ],
+      [
+        true,
+        "Unified single-port deployment: FastAPI serves React SPA index on port 8000: True"
+      ],
+      [
+        true,
+        "Regression test suites passed (test_engine.py & test_api.py): True"
+      ]
+    ]
+  }
+}

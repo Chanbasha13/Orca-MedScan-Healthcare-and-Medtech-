@@ -104,7 +104,7 @@ class AssistantMessage(BaseModel):
     content: str = Field(..., max_length=4000)
 
 class AssistantChatRequest(BaseModel):
-    messages: List[AssistantMessage] = Field(..., max_length=30)
+    messages: List[AssistantMessage] = Field(..., max_length=100)
     language: Optional[str] = "English"
     report_context: Optional[Dict[str, Any]] = None
 

@@ -13,6 +13,7 @@ import { DiagnosticsView } from './views/DiagnosticsView';
 import { HistoryView } from './views/HistoryView';
 import { SettingsView } from './views/SettingsView';
 import { SafetyView } from './views/SafetyView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ReportAudit, BiomarkerRecord } from './types';
 
 export const App: React.FC = () => {
@@ -21,7 +22,14 @@ export const App: React.FC = () => {
 
   const [route, setRoute] = useState<'landing' | 'app'>(() => {
     try {
-      return localStorage.getItem('orca_user_session') ? 'app' : 'landing';
+      const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      const isReload = navEntry?.type === 'reload';
+      const savedRoute = sessionStorage.getItem('orca_active_route');
+      const hasSession = localStorage.getItem('orca_user_session');
+      if (isReload && savedRoute === 'app' && hasSession) {
+        return 'app';
+      }
+      return 'landing';
     } catch {
       return 'landing';
     }
@@ -131,10 +139,20 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // When authenticated, default to app route
+  // Keep route synced with sessionStorage for page refresh persistence
   useEffect(() => {
-    if (isAuthenticated && route === 'landing') {
-      setRoute('app');
+    try {
+      sessionStorage.setItem('orca_active_route', route);
+    } catch {}
+  }, [route]);
+
+  // Return to landing page if user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setRoute('landing');
+      try {
+        sessionStorage.removeItem('orca_active_route');
+      } catch {}
     }
   }, [isAuthenticated]);
 
@@ -153,6 +171,14 @@ export const App: React.FC = () => {
   const handleOpenAuth = (mode: 'login' | 'signup') => {
     setAuthMode(mode);
     setAuthModalOpen(true);
+  };
+
+  const handleGetStarted = (mode: 'login' | 'signup' = 'signup') => {
+    if (isAuthenticated) {
+      setRoute('app');
+    } else {
+      handleOpenAuth(mode);
+    }
   };
 
   const handleAddReportToHistory = (report: ReportAudit) => {
@@ -253,7 +279,7 @@ export const App: React.FC = () => {
         />
         <main className="flex-1">
           <LandingPage
-            onOpenAuth={handleOpenAuth}
+            onOpenAuth={handleGetStarted}
             onLaunchBenchmark={handleLaunchBenchmark}
             onExploreWorkflow={() => {
               const el = document.getElementById('workflow-section');
@@ -356,12 +382,22 @@ export const App: React.FC = () => {
           )}
 
           {navView === 'AI Assistant' && (
-            <AssistantView
-              currentReport={currentReport}
-              history={history}
-              onSelectReport={(rep) => setCurrentReport(rep)}
-              onNavigateAnalyze={() => setNavView('Analyze Report')}
-            />
+            <ErrorBoundary
+              fallbackTitle="Clinical Decision-Support Assistant Unavailable"
+              fallbackMessage="An unexpected error occurred in the AI Assistant interface. Your session data and clinical reports remain safe."
+              onReset={() => {
+                try {
+                  localStorage.removeItem('orca_assistant_history');
+                } catch {}
+              }}
+            >
+              <AssistantView
+                currentReport={currentReport}
+                history={history}
+                onSelectReport={(rep) => setCurrentReport(rep)}
+                onNavigateAnalyze={() => setNavView('Analyze Report')}
+              />
+            </ErrorBoundary>
           )}
 
           {navView === 'Extraction Diagnostics' && (

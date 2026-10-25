@@ -332,6 +332,9 @@ def audit_check_5_auth_history_isolation():
 def audit_check_6_frontend_summary():
     cat = "6_navigation_theme_mobile"
     print("\n--- [CHECK 6] Navigation, Language Selection, Theme, and Mobile Responsiveness ---")
+    if not os.path.exists("audit_results_frontend.json"):
+        subprocess.run([sys.executable, "audit_frontend.py"], capture_output=True)
+
     if os.path.exists("audit_results_frontend.json"):
         with open("audit_results_frontend.json", "r") as f:
             f_data = json.load(f)

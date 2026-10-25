@@ -34,6 +34,28 @@ interface AssistantViewProps {
   onNavigateAnalyze: () => void;
 }
 
+// Helper to safely format any backend error (string, dict, or FastAPI 422 list of objects) into a clean string
+const extractErrorMessage = (err: any): string => {
+  if (!err) return 'Assistant communication error occurred.';
+  if (typeof err === 'string') return err;
+  if (Array.isArray(err)) {
+    return err
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object' && item !== null) {
+          return item.msg || item.message || JSON.stringify(item);
+        }
+        return String(item);
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+  if (typeof err === 'object' && err !== null) {
+    return err.msg || err.message || err.detail || err.error || JSON.stringify(err);
+  }
+  return String(err);
+};
+
 export const AssistantView: React.FC<AssistantViewProps> = ({
   currentReport,
   history,
@@ -120,7 +142,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         total_count: currentReport.total_count,
         normal_count: currentReport.normal_count,
         flagged_count: currentReport.flagged_count,
-        records: currentReport.records.map((r: BiomarkerRecord) => ({
+        records: (currentReport.records || []).slice(0, 30).map((r: BiomarkerRecord) => ({
           test_name: r['Test Name'],
           measured_value: r['Measured Value'],
           unit: r.Unit,
@@ -132,21 +154,36 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
     }
 
     try {
+      // Keep only recent conversation messages to prevent token bloat and FastAPI 422 payload errors
+      const messagesToSend = newMessages.slice(-20).map((m) => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      }));
+
       const res = await fetch('/api/assistant/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: messagesToSend,
           language: currentLanguageInfo.name,
           report_context: reportPayload,
         }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = { detail: `HTTP ${res.status}: Failed to parse server response` };
+      }
       setIsLoading(false);
 
       if (!res.ok) {
-        setErrorMessage(data.detail || 'Assistant communication error occurred.');
+        setErrorMessage(
+          extractErrorMessage(
+            data.detail || data.error || data.message || `Server returned error status ${res.status}`
+          )
+        );
         return;
       }
 
@@ -156,18 +193,27 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         setIsGroqConfigured(true);
       }
 
+      const replyContent =
+        typeof data.reply === 'string'
+          ? data.reply
+          : data.reply
+          ? JSON.stringify(data.reply)
+          : 'No response content returned.';
+
       const assistantMessage: Message = {
         id: `asst-${Date.now()}`,
         role: 'assistant',
-        content: data.reply,
+        content: replyContent,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        hasReportContext: data.has_report_context,
+        hasReportContext: Boolean(data.has_report_context),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
       setIsLoading(false);
-      setErrorMessage(`Network error communicating with clinical assistant: ${err.message}`);
+      setErrorMessage(
+        `Network error communicating with clinical assistant: ${extractErrorMessage(err.message || err)}`
+      );
     }
   };
 
@@ -338,7 +384,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
 
                     {/* Content */}
                     <div className="whitespace-pre-wrap font-sans text-xs leading-relaxed">
-                      {m.content}
+                      {typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}
                     </div>
 
                     {/* Context badge if report was attached */}
@@ -368,11 +414,13 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
 
             {/* Error Message */}
             {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between">
-                <span>{errorMessage}</span>
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between gap-3">
+                <span className="font-sans break-words pr-2">
+                  {typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage)}
+                </span>
                 <button
                   onClick={() => handleSend()}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-900/60 font-mono font-bold text-[10px] hover:bg-rose-200 transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-900/60 font-mono font-bold text-[10px] hover:bg-rose-200 transition-colors shrink-0"
                 >
                   <RotateCcw className="w-3 h-3" /> Retry
                 </button>
@@ -482,7 +530,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
                       Flagged Biomarkers:
                     </span>
                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                      {currentReport.records
+                      {(currentReport.records || [])
                         .filter((r) => r.Category === 'flagged')
                         .slice(0, 5)
                         .map((rec, idx) => (

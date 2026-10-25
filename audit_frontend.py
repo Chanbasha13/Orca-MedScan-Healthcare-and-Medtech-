@@ -206,3 +206,4 @@ async def run_frontend_audit():
 
 if __name__ == "__main__":
     asyncio.run(run_frontend_audit())
+

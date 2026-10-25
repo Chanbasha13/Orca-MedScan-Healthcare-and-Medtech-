@@ -1,0 +1,78 @@
+{
+  "views_tested": {
+    "dashboard": {
+      "ok": true,
+      "headings": [
+        "Clinical Telemetry Dashboard",
+        "Biomarker Status Distribution",
+        "Priority Out-of-Range Findings"
+      ]
+    },
+    "analyze": {
+      "ok": true,
+      "headings": [
+        "Clinical Report Ingestion & Verification"
+      ]
+    },
+    "assistant": {
+      "ok": true,
+      "headings": [
+        "Clinical Decision-Support Assistant",
+        "Audited Report"
+      ]
+    },
+    "history": {
+      "ok": true,
+      "headings": [
+        "Session Audit History",
+        "SCREENED DOCUMENT AUDITS (4)",
+        "Metropolis Diagnostic Benchmark (MET-98421) (2026-10-25 15:08)"
+      ]
+    },
+    "diagnostics": {
+      "ok": true,
+      "headings": [
+        "Extraction Diagnostics & Candidate Telemetry"
+      ]
+    },
+    "settings": {
+      "ok": true,
+      "headings": [
+        "System Settings & Cryptographic Enclave",
+        "Active Practitioner Identity",
+        "Cryptographic Enclave Parameters"
+      ]
+    },
+    "safety": {
+      "ok": true,
+      "headings": [
+        "Clinical Safety, Methodology & Enclave Architecture",
+        "1. Purpose & Clinical Scope",
+        "2. Dynamic Reference Interval Prioritization"
+      ]
+    }
+  },
+  "languages_tested": {
+    "en": true,
+    "hi": true,
+    "te": true,
+    "ta": true,
+    "kn": true,
+    "ml": true,
+    "bn": true
+  },
+  "theme_toggle": true,
+  "mobile_responsive": true,
+  "console_errors": [],
+  "screenshots": [
+    "screenshot_audit_darkmode.png",
+    "screenshot_audit_indic_telugu.png",
+    "screenshot_audit_mobile.png"
+  ],
+  "mobile_metrics": {
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "hasHorizontalOverflow": false,
+    "bodyTextLength": 3554
+  }
+}
