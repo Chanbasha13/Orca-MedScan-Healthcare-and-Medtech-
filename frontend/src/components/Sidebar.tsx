@@ -53,10 +53,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
 
-  const navItems: { label: NavView; transKey: TranslationKey; icon: React.ReactNode; isAI?: boolean }[] = [
+  const navItems: { label: NavView; transKey: TranslationKey; icon: React.ReactNode }[] = [
     { label: 'Dashboard', transKey: 'nav_dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: 'Analyze Report', transKey: 'nav_analyze', icon: <FileSearch className="w-4 h-4" /> },
-    { label: 'AI Assistant', transKey: 'nav_assistant', icon: <Bot className="w-4 h-4" />, isAI: true },
+    { label: 'AI Assistant', transKey: 'nav_assistant', icon: <Bot className="w-4 h-4" /> },
     { label: 'Report History', transKey: 'nav_history', icon: <History className="w-4 h-4" /> },
     { label: 'Extraction Diagnostics', transKey: 'nav_diagnostics', icon: <Activity className="w-4 h-4" /> },
     { label: 'Settings', transKey: 'nav_settings', icon: <Settings className="w-4 h-4" /> },
@@ -120,11 +120,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Language Selector in Sidebar */}
-        {!isCollapsed && (
-          <div className="px-3 pb-2">
-            <LanguageSelector variant="sidebar" />
-          </div>
-        )}
+        <div className={isCollapsed ? 'px-2 pb-2 flex justify-center' : 'px-3 pb-2'}>
+          <LanguageSelector variant={isCollapsed ? 'compact' : 'sidebar'} />
+        </div>
 
         {/* Navigation Items */}
         <nav className="p-2 space-y-1">
@@ -136,25 +134,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.label}
                 onClick={() => onSelectView(item.label)}
                 title={isCollapsed ? translatedLabel : undefined}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center ${
+                  isCollapsed ? 'justify-center' : 'justify-start'
+                } px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                   active
                     ? 'bg-forest-800 text-ivory-50 shadow-paper-ivory font-bold'
                     : 'text-charcoal-600 dark:text-ivory-300 hover:bg-ivory-200/70 dark:hover:bg-charcoal-800 hover:text-charcoal-900 dark:hover:text-ivory-50'
-                } ${isCollapsed ? 'justify-center' : ''}`}
+                }`}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  <span className={active ? 'text-ivory-50' : item.isAI ? 'text-forest-700 dark:text-forest-400' : 'text-charcoal-400 dark:text-charcoal-400'}>
+                  <span className={active ? 'text-ivory-50' : 'text-charcoal-400 dark:text-charcoal-400'}>
                     {item.icon}
                   </span>
                   {!isCollapsed && <span className="truncate">{translatedLabel}</span>}
                 </div>
-                {!isCollapsed && item.isAI && (
-                  <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
-                    active ? 'bg-forest-900 text-ivory-100' : 'bg-forest-100 dark:bg-forest-950 text-forest-800 dark:text-forest-300'
-                  }`}>
-                    Groq
-                  </span>
-                )}
               </button>
             );
           })}

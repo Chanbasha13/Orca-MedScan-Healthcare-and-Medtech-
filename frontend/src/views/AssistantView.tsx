@@ -545,3 +545,4 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
     </div>
   );
 };
+
