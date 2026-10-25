@@ -8,7 +8,7 @@
       "created_at": "2026-10-25T12:46:36.279192",
       "failed_attempts": 1,
       "locked_until": null,
-      "last_login": "2026-10-25T13:12:40.893109"
+      "last_login": "2026-10-25T13:44:50.869332"
     },
     "dr.smith@clinic.org": {
       "email": "dr.smith@clinic.org",
@@ -68,6 +68,26 @@
       "failed_attempts": 0,
       "locked_until": null,
       "last_login": "2026-10-25T13:12:40.952081"
+    },
+    "qa_test_20596@clinic.org": {
+      "email": "qa_test_20596@clinic.org",
+      "password_hash": "20c51f57321edb396754a06ebb7745bf737033b88307e3310041d6821f6c5a4b",
+      "password_salt": "3d53ebd1a413a9f812f392f95eb9ada06d21a9fa286bfabe636b7179049c70ca",
+      "role": "Clinical Practitioner",
+      "created_at": "2026-10-25T13:14:01.743900",
+      "failed_attempts": 0,
+      "locked_until": null,
+      "last_login": "2026-10-25T13:14:01.763335"
+    },
+    "qa_test_22900@clinic.org": {
+      "email": "qa_test_22900@clinic.org",
+      "password_hash": "44bb4c84d4ae126cb3412db6cf6030831ff5285188ddb1b66d0ee9aae6c5ab0c",
+      "password_salt": "a242ab0b54ce05ea05c77873573cb168e339175ed9122c361616d14f84f9533e",
+      "role": "Clinical Practitioner",
+      "created_at": "2026-10-25T13:44:50.910370",
+      "failed_attempts": 0,
+      "locked_until": null,
+      "last_login": "2026-10-25T13:44:50.930381"
     }
   }
 }

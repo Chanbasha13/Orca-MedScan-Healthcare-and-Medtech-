@@ -12,6 +12,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
+    try {
+      const param = new URLSearchParams(window.location.search).get('theme');
+      if (param === 'dark' || param === 'light') {
+        return param;
+      }
+    } catch {}
     const saved = localStorage.getItem('orca_theme');
     if (saved === 'light' || saved === 'dark') {
       return saved;
@@ -55,3 +61,4 @@ export const useTheme = () => {
   }
   return context;
 };
+

@@ -57,3 +57,4 @@ export interface SystemStatus {
     vault_path: string;
   };
 }
+
