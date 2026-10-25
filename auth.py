@@ -147,3 +147,4 @@ def register_user(email: str, password: str, confirm_password: str) -> tuple[boo
     }
     _save_vault(vault)
     return True, "Account registered successfully. You can now log in."
+

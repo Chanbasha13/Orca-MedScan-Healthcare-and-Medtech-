@@ -8,7 +8,7 @@
       "created_at": "2026-10-25T12:46:36.279192",
       "failed_attempts": 1,
       "locked_until": null,
-      "last_login": "2026-10-25T12:53:34.418979"
+      "last_login": "2026-10-25T13:12:40.893109"
     },
     "dr.smith@clinic.org": {
       "email": "dr.smith@clinic.org",
@@ -29,6 +29,45 @@
       "failed_attempts": 0,
       "locked_until": null,
       "last_login": "2026-10-25T12:53:34.478058"
+    },
+    "qa_test_19699@clinic.org": {
+      "email": "qa_test_19699@clinic.org",
+      "password_hash": "7cc5cf269175a034f5cc5f62bc886278056172352f512c361d279858be62fbaf",
+      "password_salt": "c22c53e29c87d825d77a7592546f44a13ff667de502b0ab217ef60f919ca2fcd",
+      "role": "Clinical Practitioner",
+      "created_at": "2026-10-25T12:54:54.172265",
+      "failed_attempts": 0,
+      "locked_until": null,
+      "last_login": "2026-10-25T12:54:54.191789"
+    },
+    "bashachan8@gmail.com": {
+      "email": "bashachan8@gmail.com",
+      "password_hash": "763f9e8eed8403a343cc03bac6ef753eebe9647f69ec0dd0ba161e58508ec730",
+      "password_salt": "edf1576058851610dcb72978fb0ad6760459001407d78b43abe3757ac3647442",
+      "role": "Clinical Practitioner",
+      "created_at": "2026-10-25T12:59:29.155157",
+      "failed_attempts": 0,
+      "locked_until": null
+    },
+    "qa_test_20017@clinic.org": {
+      "email": "qa_test_20017@clinic.org",
+      "password_hash": "126987ab431b69101a189d9e835d19041b9ce6086fb8d6012ee1f140f1843372",
+      "password_salt": "f7fddd1e4661a80a65767541d4a0a84110d69ed303ae8408e51da00f88aef590",
+      "role": "Clinical Practitioner",
+      "created_at": "2026-10-25T13:01:37.502284",
+      "failed_attempts": 0,
+      "locked_until": null,
+      "last_login": "2026-10-25T13:01:37.521601"
+    },
+    "qa_test_20355@clinic.org": {
+      "email": "qa_test_20355@clinic.org",
+      "password_hash": "d8f1ba5105256a41a951006a235c26fd838e60fc13e3dabc8e3198c9476cbf82",
+      "password_salt": "1bffaa9f437f7076efde38b3e23888a09335c654988592fee9ac558b6b6218d8",
+      "role": "Clinical Practitioner",
+      "created_at": "2026-10-25T13:12:40.932471",
+      "failed_attempts": 0,
+      "locked_until": null,
+      "last_login": "2026-10-25T13:12:40.952081"
     }
   }
 }
