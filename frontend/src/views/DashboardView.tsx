@@ -10,6 +10,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { ReportAudit, BiomarkerRecord } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface DashboardViewProps {
   history: ReportAudit[];
@@ -28,6 +29,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onExportCSV,
   onExportPDF,
 }) => {
+  const { t } = useLanguage();
   const totalAudits = history.length;
   const totalScreened = history.reduce((sum, h) => sum + h.total_count, 0);
   const totalFlagged = history.reduce((sum, h) => sum + h.flagged_count, 0);
@@ -48,13 +50,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-ivory-300 dark:border-charcoal-800">
         <div>
           <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-forest-700 dark:text-forest-400">
-            Pathologist Workstation
+            {t('dash_pathologist_workstation')}
           </span>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal-900 dark:text-ivory-50 tracking-tight mt-1">
-            Clinical Telemetry Dashboard
+            {t('dash_title')}
           </h1>
           <p className="text-xs sm:text-sm text-charcoal-600 dark:text-ivory-400 mt-1 max-w-2xl">
-            Real-time biometric distribution, printed laboratory reference interval verification, and anomaly surveillance.
+            {t('dash_subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -63,7 +65,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 font-bold text-xs shadow-paper-ivory transition-all"
           >
             <Activity className="w-4 h-4" />
-            Analyze New Report
+            {t('dash_analyze_new')}
           </button>
         </div>
       </div>
@@ -72,53 +74,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white dark:bg-charcoal-900 border border-ivory-300 dark:border-charcoal-800 shadow-paper-ivory transition-all hover:-translate-y-0.5">
           <div className="flex items-center justify-between text-charcoal-500 dark:text-ivory-400 mb-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Reports Screened</span>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">{t('dash_reports_screened')}</span>
             <FileText className="w-4 h-4 text-forest-700 dark:text-forest-400" />
           </div>
           <div className="text-3xl font-mono font-bold text-charcoal-900 dark:text-ivory-50">
             {totalAudits}
           </div>
           <div className="text-[11px] text-charcoal-500 dark:text-ivory-400 mt-1 flex items-center gap-1 font-sans">
-            <Clock className="w-3 h-3 text-forest-700" /> Active session enclave audits
+            <Clock className="w-3 h-3 text-forest-700" /> {t('dash_active_audits')}
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-charcoal-900 border border-ivory-300 dark:border-charcoal-800 shadow-paper-ivory transition-all hover:-translate-y-0.5">
           <div className="flex items-center justify-between text-charcoal-500 dark:text-ivory-400 mb-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Biomarkers Screened</span>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">{t('dash_biomarkers_screened')}</span>
             <Activity className="w-4 h-4 text-forest-700 dark:text-forest-400" />
           </div>
           <div className="text-3xl font-mono font-bold text-charcoal-900 dark:text-ivory-50">
             {totalScreened}
           </div>
           <div className="text-[11px] text-clinical-normal mt-1 flex items-center gap-1 font-semibold">
-            {totalNormal} in reference interval
+            {totalNormal} {t('dash_in_ref_interval')}
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-charcoal-900 border border-ivory-300 dark:border-charcoal-800 shadow-paper-ivory transition-all hover:-translate-y-0.5">
           <div className="flex items-center justify-between text-charcoal-500 dark:text-ivory-400 mb-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Out-of-Range Flags</span>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">{t('dash_out_of_range')}</span>
             <AlertTriangle className="w-4 h-4 text-clinical-danger" />
           </div>
           <div className={`text-3xl font-mono font-bold ${totalFlagged > 0 ? 'text-clinical-danger' : 'text-charcoal-900 dark:text-ivory-50'}`}>
             {totalFlagged}
           </div>
           <div className="text-[11px] text-charcoal-500 dark:text-ivory-400 mt-1 font-sans">
-            Potentially High or Low
+            {t('dash_potentially_high_low')}
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white dark:bg-charcoal-900 border border-ivory-300 dark:border-charcoal-800 shadow-paper-ivory transition-all hover:-translate-y-0.5">
           <div className="flex items-center justify-between text-charcoal-500 dark:text-ivory-400 mb-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Needs Review</span>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">{t('dash_needs_review')}</span>
             <HelpCircle className="w-4 h-4 text-charcoal-400" />
           </div>
           <div className="text-3xl font-mono font-bold text-charcoal-900 dark:text-ivory-50">
             {totalUncertain}
           </div>
           <div className="text-[11px] text-charcoal-500 dark:text-ivory-400 mt-1 font-sans">
-            Atypical or candidate markers
+            {t('dash_atypical_markers')}
           </div>
         </div>
       </div>
@@ -130,23 +132,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             📑
           </div>
           <h3 className="font-serif text-2xl font-bold text-charcoal-900 dark:text-ivory-50">
-            No Medical Reports Screened in this Session
+            {t('dash_empty_title')}
           </h3>
           <p className="text-sm text-charcoal-600 dark:text-ivory-400 max-w-lg mx-auto leading-relaxed">
-            Upload laboratory reports in any standard format (PDF, PNG, JPG, WEBP, BMP, TIFF) or load the pre-configured benchmark to immediately populate clinical telemetry.
+            {t('dash_empty_desc')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               onClick={onNavigateAnalyze}
               className="px-5 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 font-bold text-xs shadow-paper-ivory transition-all"
             >
-              Analyze a Report
+              {t('dash_analyze_new')}
             </button>
             <button
               onClick={onLoadBenchmark}
               className="px-5 py-2.5 rounded-xl border border-ivory-400 dark:border-charcoal-700 bg-white dark:bg-charcoal-800 text-charcoal-800 dark:text-ivory-200 font-bold text-xs hover:border-forest-700 transition-all font-mono shadow-paper-ivory"
             >
-              ⚡ Load 1-Click Benchmark (16 Biomarkers)
+              ⚡ {t('nav_benchmark')} (16 Biomarkers)
             </button>
           </div>
         </div>
@@ -159,7 +161,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="lg:col-span-5 p-6 rounded-2xl bg-white dark:bg-charcoal-900 border border-ivory-300 dark:border-charcoal-800 shadow-paper-ivory space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-lg font-bold text-charcoal-900 dark:text-ivory-50">
-                Biomarker Status Distribution
+                {t('dash_status_distribution')}
               </h3>
               <span className="text-xs font-mono text-charcoal-500 dark:text-ivory-400">{totalScreened} total</span>
             </div>
@@ -170,7 +172,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="flex justify-between text-xs font-semibold mb-1">
                   <span className="text-clinical-normal flex items-center gap-1.5 font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-clinical-normal"></span>
-                    Normal (In Reference Interval)
+                    {t('dash_normal')}
                   </span>
                   <span className="font-mono text-charcoal-800 dark:text-ivory-200">{totalNormal} ({normalPct}%)</span>
                 </div>
@@ -183,7 +185,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="flex justify-between text-xs font-semibold mb-1">
                   <span className="text-clinical-danger flex items-center gap-1.5 font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-clinical-danger"></span>
-                    Potentially High / Low
+                    {t('dash_flagged')}
                   </span>
                   <span className="font-mono text-charcoal-800 dark:text-ivory-200">{totalFlagged} ({flaggedPct}%)</span>
                 </div>
@@ -196,7 +198,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="flex justify-between text-xs font-semibold mb-1">
                   <span className="text-charcoal-500 dark:text-ivory-400 flex items-center gap-1.5 font-medium">
                     <span className="w-2.5 h-2.5 rounded-full bg-charcoal-400"></span>
-                    Needs Review / Atypical
+                    {t('dash_uncertain')}
                   </span>
                   <span className="font-mono text-charcoal-800 dark:text-ivory-200">{totalUncertain} ({uncertainPct}%)</span>
                 </div>
@@ -207,7 +209,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div className="pt-4 border-t border-ivory-200 dark:border-charcoal-800 text-[11px] text-charcoal-500 dark:text-ivory-400 leading-relaxed font-sans">
-              💡 <strong>Prioritization Protocol</strong>: Printed report intervals take precedent over general population standard ranges.
+              💡 <strong>Prioritization Protocol</strong>: {t('dash_prioritization_protocol')}
             </div>
           </div>
 
@@ -216,7 +218,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-lg font-bold text-charcoal-900 dark:text-ivory-50 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-clinical-danger" />
-                Priority Out-of-Range Findings
+                {t('dash_priority_findings')}
               </h3>
               <span className="text-xs text-charcoal-500 dark:text-ivory-400 font-mono">
                 Active: {currentReport?.source_name || 'Specimen'}
@@ -266,7 +268,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ) : (
               <div className="p-8 text-center text-charcoal-500 dark:text-ivory-400">
                 <FileCheck2 className="w-8 h-8 text-clinical-normal mx-auto mb-2" />
-                <p className="text-sm font-semibold">All indicators within verified reference ranges.</p>
+                <p className="text-sm font-semibold">{t('dash_all_normal')}</p>
               </div>
             )}
           </div>
@@ -279,7 +281,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-ivory-200 dark:border-charcoal-800">
             <div>
               <span className="text-[10px] font-mono font-bold text-forest-700 dark:text-forest-400 uppercase tracking-wider">
-                Audited Document Specimen
+                {t('dash_audited_specimen')}
               </span>
               <h3 className="font-serif text-xl font-bold text-charcoal-900 dark:text-ivory-50">
                 {currentReport.source_name} ({currentReport.source_type})
@@ -290,13 +292,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 onClick={onExportCSV}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-ivory-300 dark:border-charcoal-700 hover:border-forest-700 text-xs font-mono font-bold text-charcoal-700 dark:text-ivory-300 hover:bg-ivory-100 dark:hover:bg-charcoal-800 transition-colors shadow-paper-ivory"
               >
-                <Download className="w-3.5 h-3.5" /> Export CSV
+                <Download className="w-3.5 h-3.5" /> {t('dash_export_csv')}
               </button>
               <button
                 onClick={onExportPDF}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-mono font-bold transition-colors shadow-paper-ivory"
               >
-                <Download className="w-3.5 h-3.5" /> Clinical PDF
+                <Download className="w-3.5 h-3.5" /> {t('dash_clinical_pdf')}
               </button>
             </div>
           </div>
@@ -306,12 +308,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-ivory-100 dark:bg-charcoal-800/60 text-charcoal-600 dark:text-ivory-300 font-mono font-bold uppercase tracking-wider border-y border-ivory-200 dark:border-charcoal-800">
                 <tr>
-                  <th className="py-3 px-4 font-serif font-bold text-xs capitalize">Biomarker</th>
-                  <th className="py-3 px-4">Measured</th>
-                  <th className="py-3 px-4">Unit</th>
-                  <th className="py-3 px-4">Reference Interval</th>
-                  <th className="py-3 px-4">Calibration Source</th>
-                  <th className="py-3 px-4">Clinical Classification</th>
+                  <th className="py-3 px-4 font-serif font-bold text-xs capitalize">{t('dash_th_biomarker')}</th>
+                  <th className="py-3 px-4">{t('dash_th_measured')}</th>
+                  <th className="py-3 px-4">{t('dash_th_unit')}</th>
+                  <th className="py-3 px-4">{t('dash_th_ref_interval')}</th>
+                  <th className="py-3 px-4">{t('dash_th_calibration')}</th>
+                  <th className="py-3 px-4">{t('dash_th_classification')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ivory-200 dark:divide-charcoal-800 text-charcoal-700 dark:text-ivory-300">

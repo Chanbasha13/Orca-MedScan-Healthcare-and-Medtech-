@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useLanguage } from './context/LanguageContext';
 import { Header } from './components/Header';
 import { Sidebar, NavView } from './components/Sidebar';
 import { LandingPage } from './views/LandingPage';
 import { AuthModal } from './views/AuthModal';
 import { DashboardView } from './views/DashboardView';
 import { AnalyzeView } from './views/AnalyzeView';
+import { AssistantView } from './views/AssistantView';
 import { DiagnosticsView } from './views/DiagnosticsView';
 import { HistoryView } from './views/HistoryView';
 import { SettingsView } from './views/SettingsView';
@@ -14,6 +16,7 @@ import { ReportAudit, BiomarkerRecord } from './types';
 
 export const App: React.FC = () => {
   const { isAuthenticated, loginEvaluatorFastPass } = useAuth();
+  const { t } = useLanguage();
 
   const [route, setRoute] = useState<'landing' | 'app'>(() => {
     try {
@@ -81,6 +84,8 @@ export const App: React.FC = () => {
       } else if (
         viewParam === 'dashboard' ||
         viewParam === 'analyze' ||
+        viewParam === 'assistant' ||
+        viewParam === 'ai-assistant' ||
         viewParam === 'diagnostics' ||
         viewParam === 'history' ||
         viewParam === 'settings' ||
@@ -92,6 +97,7 @@ export const App: React.FC = () => {
         setRoute('app');
         if (viewParam === 'dashboard') setNavView('Dashboard');
         if (viewParam === 'analyze') setNavView('Analyze Report');
+        if (viewParam === 'assistant' || viewParam === 'ai-assistant') setNavView('AI Assistant');
         if (viewParam === 'diagnostics') setNavView('Extraction Diagnostics');
         if (viewParam === 'history') setNavView('Report History');
         if (viewParam === 'settings') setNavView('Settings');
@@ -286,11 +292,17 @@ export const App: React.FC = () => {
         <header className="h-16 px-6 sm:px-8 border-b border-ivory-300 dark:border-charcoal-800 bg-ivory-50/80 dark:bg-charcoal-900/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-forest-700 dark:text-forest-400">
-              Active Workspace
+              {t('nav_active_workspace')}
             </span>
             <span className="text-charcoal-400">/</span>
             <span className="text-xs font-mono font-bold text-charcoal-800 dark:text-ivory-200">
-              {navView}
+              {navView === 'Dashboard' ? t('nav_dashboard') :
+               navView === 'Analyze Report' ? t('nav_analyze') :
+               navView === 'AI Assistant' ? t('nav_assistant') :
+               navView === 'Report History' ? t('nav_history') :
+               navView === 'Extraction Diagnostics' ? t('nav_diagnostics') :
+               navView === 'Settings' ? t('nav_settings') :
+               navView === 'Clinical Safety' ? t('nav_safety') : navView}
             </span>
           </div>
 
@@ -299,7 +311,7 @@ export const App: React.FC = () => {
               onClick={() => setRoute('landing')}
               className="text-xs font-semibold text-charcoal-500 hover:text-charcoal-800 dark:hover:text-ivory-200 transition-colors"
             >
-              Public Overview
+              {t('nav_overview')}
             </button>
             <button
               onClick={() => {
@@ -307,7 +319,7 @@ export const App: React.FC = () => {
               }}
               className="px-3.5 py-1.5 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 font-bold text-xs shadow-paper-ivory transition-all"
             >
-              + Ingest Report
+              {t('nav_ingest_report')}
             </button>
           </div>
         </header>
@@ -329,6 +341,15 @@ export const App: React.FC = () => {
               onAddReportToHistory={handleAddReportToHistory}
               onExportCSV={handleExportCSV}
               onExportPDF={handleExportPDF}
+            />
+          )}
+
+          {navView === 'AI Assistant' && (
+            <AssistantView
+              currentReport={currentReport}
+              history={history}
+              onSelectReport={(rep) => setCurrentReport(rep)}
+              onNavigateAnalyze={() => setNavView('Analyze Report')}
             />
           )}
 

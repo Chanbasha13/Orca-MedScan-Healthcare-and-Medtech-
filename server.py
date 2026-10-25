@@ -13,7 +13,35 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Response, De
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
+# -------------------------------------------------------------
+# Groq Cloud Clinical AI Assistant Configuration
+# -------------------------------------------------------------
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+GROQ_TIMEOUT_SECONDS = int(os.environ.get("GROQ_TIMEOUT_SECONDS", "30"))
+
+# Check for .env file if GROQ_API_KEY not already set in environment
+if not GROQ_API_KEY:
+    env_file = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("GROQ_API_KEY=") and not line.startswith("#"):
+                        GROQ_API_KEY = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    elif line.startswith("GROQ_MODEL=") and not line.startswith("#"):
+                        GROQ_MODEL = line.split("=", 1)[1].strip().strip('"').strip("'")
+        except Exception:
+            pass
+
+try:
+    from groq import Groq
+    GROQ_SDK_AVAILABLE = True
+except ImportError:
+    GROQ_SDK_AVAILABLE = False
 
 # Import core clinical engine and auth vault
 from app import (
@@ -78,6 +106,15 @@ class ExportCSVRequest(BaseModel):
 class ExportPDFRequest(BaseModel):
     meta: Dict[str, Any]
     records: List[Dict[str, Any]]
+
+class AssistantMessage(BaseModel):
+    role: str # 'user' | 'assistant'
+    content: str = Field(..., max_length=4000)
+
+class AssistantChatRequest(BaseModel):
+    messages: List[AssistantMessage] = Field(..., max_length=30)
+    language: Optional[str] = "English"
+    report_context: Optional[Dict[str, Any]] = None
 
 # -------------------------------------------------------------
 # API Endpoints
@@ -251,6 +288,161 @@ def system_status():
             "vault_path": AUTH_FILE
         }
     }
+
+# -------------------------------------------------------------
+# Clinical AI Assistant Endpoints (Groq Integration)
+# -------------------------------------------------------------
+@app.get("/api/assistant/status")
+def assistant_status():
+    current_key = os.environ.get("GROQ_API_KEY", GROQ_API_KEY).strip()
+    is_configured = bool(current_key and not current_key.startswith("gsk_your_groq_api_key"))
+    return {
+        "configured": is_configured,
+        "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
+        "sdk_available": GROQ_SDK_AVAILABLE,
+        "supported_languages": ["en", "hi", "te", "ta", "kn", "ml", "bn"],
+        "language_labels": [
+            {"code": "en", "name": "English"},
+            {"code": "hi", "name": "Hindi (हिन्दी)"},
+            {"code": "te", "name": "Telugu (తెలుగు)"},
+            {"code": "ta", "name": "Tamil (தமிழ்)"},
+            {"code": "kn", "name": "Kannada (ಕನ್ನಡ)"},
+            {"code": "ml", "name": "Malayalam (മലയാളം)"},
+            {"code": "bn", "name": "Bengali (বাংলা)"},
+        ],
+        "disclaimer": "Orca MedScan Assistant provides educational screening support and does not substitute for licensed medical consultation."
+    }
+
+@app.post("/api/assistant/chat")
+async def assistant_chat(req: AssistantChatRequest):
+    if not req.messages:
+        raise HTTPException(status_code=400, detail="Conversation message history cannot be empty.")
+    
+    current_key = os.environ.get("GROQ_API_KEY", GROQ_API_KEY).strip()
+    is_configured = bool(current_key and not current_key.startswith("gsk_your_groq_api_key"))
+
+    lang = req.language or "English"
+
+    if not is_configured:
+        return {
+            "success": False,
+            "configured": False,
+            "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
+            "reply": (
+                "Groq Cloud API Key is not configured on the server. "
+                "To enable the clinical AI assistant, please set GROQ_API_KEY in your server environment "
+                "or .env file (e.g., export GROQ_API_KEY='gsk_...').\n\n"
+                "All deterministic report screening, OCR, reference intervals, and Indian language translations remain fully operational."
+            ),
+            "disclaimer": "Orca MedScan Assistant provides educational screening support and does not substitute for licensed medical consultation.",
+            "language": lang,
+            "has_report_context": bool(req.report_context)
+        }
+
+    # Clinical safety guardrail system prompt
+    system_instructions = (
+        "You are the Orca MedScan Clinical Decision-Support Assistant, an advanced educational screening "
+        "and medical report explanation tool developed for Orcathon 2026 (Healthcare & MedTech track).\n\n"
+        "MANDATORY CLINICAL SAFETY AND ETHICAL RULES:\n"
+        "1. STRICTLY INFORMATIONAL: You are strictly an educational decision-support tool. You do NOT provide medical diagnoses, clinical prognoses, or emergency triage.\n"
+        "2. NO PRESCRIPTIONS: Never prescribe medications or tell users to start, stop, or alter medical dosages.\n"
+        "3. PRESERVE REPORT FIDELITY: When patient specimen results are attached below, reference ONLY the measured biomarker values, reference intervals, and flags provided. Never fabricate or hallucinate numerical values.\n"
+        "4. CLEAR SEPARATION OF FACTS: Clearly distinguish between measured results from the patient's report and general medical physiology.\n"
+        "5. UNCERTAIN READINGS: If an indicator is flagged as candidate or needs review, advise inspecting the physical printed document.\n"
+        "6. ABNORMAL FINDINGS: For out-of-range results, explain the biological significance calmly and suggest discussing with a licensed physician.\n"
+        f"7. LANGUAGE REQUIREMENT: You must respond in the requested language: {lang}. "
+        f"Ensure natural, culturally respectful, and accurate phrasing in {lang}. Keep formal medical test names (e.g., Hemoglobin, Fasting Glucose) recognizable alongside the explanation.\n"
+        "8. DISCLAIMER: Include a brief reminder that this analysis is educational and requires physician review."
+    )
+
+    # Build non-identifying report context if present
+    context_str = ""
+    if req.report_context:
+        doc_name = req.report_context.get("source_name", "Laboratory Specimen")
+        doc_type = req.report_context.get("source_type", "Lab Report")
+        total = req.report_context.get("total_count", 0)
+        flagged = req.report_context.get("flagged_count", 0)
+        records = req.report_context.get("records", [])
+
+        context_str = f"\n\nAUDITED LABORATORY REPORT CONTEXT:\nDocument: {doc_name} ({doc_type})\nTotal Tests: {total} | Out-of-Range Flags: {flagged}\n\nMeasured Biomarkers:\n"
+        for r in records[:25]:
+            name = r.get("Test Name") or r.get("test_name", "Unknown Test")
+            val = r.get("Measured Value") or r.get("measured_value", "N/A")
+            unit = r.get("Unit") or r.get("unit", "")
+            rr = r.get("Reference Range") or r.get("reference_range", "")
+            st = r.get("Status") or r.get("status", "Unknown")
+            context_str += f"- {name}: {val} {unit} (Ref Range: {rr} {unit}, Status: {st})\n"
+
+    full_system_prompt = system_instructions + context_str
+
+    groq_messages = [{"role": "system", "content": full_system_prompt}]
+    for m in req.messages[-10:]:
+        if m.role in ["user", "assistant"]:
+            groq_messages.append({"role": m.role, "content": m.content})
+
+    try:
+        if GROQ_SDK_AVAILABLE:
+            client = Groq(api_key=current_key, timeout=GROQ_TIMEOUT_SECONDS)
+            model_to_use = os.environ.get("GROQ_MODEL", GROQ_MODEL)
+            completion = client.chat.completions.create(
+                model=model_to_use,
+                messages=groq_messages,
+                temperature=0.2,
+                max_tokens=1024,
+            )
+            reply_text = completion.choices[0].message.content
+        else:
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {current_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
+                "messages": groq_messages,
+                "temperature": 0.2,
+                "max_tokens": 1024,
+            }
+            with httpx.Client(timeout=GROQ_TIMEOUT_SECONDS) as hc:
+                hres = hc.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
+                if hres.status_code != 200:
+                    raise HTTPException(status_code=hres.status_code, detail=f"Groq API error: {hres.text}")
+                data = hres.json()
+                reply_text = data["choices"][0]["message"]["content"]
+
+        return {
+            "success": True,
+            "configured": True,
+            "reply": reply_text,
+            "language": lang,
+            "has_report_context": bool(req.report_context)
+        }
+    except Exception as e:
+        err_msg = str(e)
+        if "401" in err_msg or "invalid_api_key" in err_msg.lower():
+            return {
+                "success": False,
+                "configured": False,
+                "reply": "The provided Groq API Key was rejected (401 Unauthorized). Please check your GROQ_API_KEY environment variable.",
+                "error": "Invalid API Key",
+                "language": lang
+            }
+        elif "429" in err_msg or "rate limit" in err_msg.lower():
+            return {
+                "success": False,
+                "configured": True,
+                "reply": "Groq Cloud rate limit reached. Please wait a few moments before sending another query.",
+                "error": "Rate limit exceeded",
+                "language": lang
+            }
+        else:
+            return {
+                "success": False,
+                "configured": True,
+                "reply": f"Encountered a communication error with Groq Cloud: {err_msg}.",
+                "error": err_msg,
+                "language": lang
+            }
 
 # If built frontend exists, serve it
 FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "frontend", "dist")

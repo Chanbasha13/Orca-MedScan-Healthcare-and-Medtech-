@@ -4,3 +4,10 @@ __pycache__/
 .DS_Store
 .streamlit/
 frontend/node_modules/
+.env
+.env.*
+!.env.example
+*.key
+data/.auth_vault.json
+capture_*.py
+take_*.py

@@ -2,6 +2,8 @@ import React from 'react';
 import { Sun, Moon, ArrowRight, ShieldCheck, Activity, Lock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { LanguageSelector } from './LanguageSelector';
 
 interface HeaderProps {
   onOpenAuth: (mode: 'login' | 'signup') => void;
@@ -12,6 +14,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onNavigateSection, onGoToApp }) => {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, logout } = useAuth();
+  const { t } = useLanguage();
 
   const handleNavClick = (id: string) => {
     if (onNavigateSection) {
@@ -65,13 +68,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onNavigateSection, o
         </nav>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Language Selector */}
+          <LanguageSelector variant="header" />
+
           {/* Working Theme Switcher */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle theme mode"
-            className="p-2.5 rounded-xl border border-ivory-200 dark:border-charcoal-800 bg-ivory-100 dark:bg-charcoal-900 text-charcoal-700 dark:text-charcoal-200 hover:border-forest-600 transition-all"
-            title={`Switch to ${theme === 'dark' ? 'Warm Light' : 'Deep Dark'} Mode`}
+            className="p-2.5 rounded-xl border border-ivory-200 dark:border-charcoal-800 bg-ivory-100 dark:bg-charcoal-900 text-charcoal-700 dark:text-charcoal-200 hover:border-forest-600 transition-all shadow-paper-ivory"
+            title={`Switch to ${theme === 'dark' ? t('nav_warm_light') : t('nav_charcoal_dark')}`}
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-amber-300" />
@@ -84,31 +90,31 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth, onNavigateSection, o
             <div className="flex items-center gap-2">
               <button
                 onClick={onGoToApp}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-700 text-white text-xs font-bold shadow-sm transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-700 text-white text-xs font-bold shadow-paper-ivory transition-all"
               >
-                Enter Workstation
+                {t('nav_dashboard')}
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={logout}
                 className="hidden sm:inline-block px-3 py-2 text-xs font-semibold text-charcoal-500 hover:text-charcoal-800 dark:hover:text-charcoal-200"
               >
-                Sign Out
+                {t('nav_logout')}
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => onOpenAuth('login')}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold text-charcoal-700 dark:text-charcoal-200 hover:text-forest-700 dark:hover:text-forest-400 transition-colors"
+                className="px-3 py-2 rounded-xl text-xs font-bold text-charcoal-700 dark:text-charcoal-200 hover:text-forest-700 dark:hover:text-forest-400 transition-colors"
               >
-                Sign In
+                {t('nav_login')}
               </button>
               <button
                 onClick={() => onOpenAuth('signup')}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-700 text-white text-xs font-bold shadow-paper-ivory transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-700 text-white text-xs font-bold shadow-paper-ivory transition-all"
               >
-                Launch Enclave
+                <span>{t('nav_launch')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

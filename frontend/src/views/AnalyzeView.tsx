@@ -11,6 +11,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { BiomarkerRecord, ReportAudit } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AnalyzeViewProps {
   onAddReportToHistory: (report: ReportAudit) => void;
@@ -23,6 +24,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
   onExportCSV,
   onExportPDF,
 }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'upload' | 'paste' | 'benchmark'>('upload');
   const [pastedText, setPastedText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -202,10 +204,10 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
           Document Intake Enclave
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal-900 dark:text-ivory-50 tracking-tight mt-1">
-          Clinical Report Ingestion & Verification
+          {t('ingest_title')}
         </h1>
         <p className="text-xs sm:text-sm text-charcoal-600 dark:text-ivory-400 mt-1 max-w-2xl">
-          Upload multi-format clinical documents or paste laboratory text for optical character recognition and reference-range screening.
+          {t('ingest_subtitle')}
         </p>
       </div>
 
@@ -213,7 +215,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
       <div className="p-6 rounded-2xl bg-white dark:bg-charcoal-900 border border-ivory-300 dark:border-charcoal-800 shadow-paper-ivory space-y-5">
         <div className="flex items-center justify-between border-b border-ivory-200 dark:border-charcoal-800 pb-3">
           <span className="text-xs font-mono font-bold text-forest-700 dark:text-forest-400 uppercase tracking-wider">
-            Phase 1 • Multi-Format Ingestion
+            {t('ingest_phase1')}
           </span>
           <div className="flex rounded-xl p-1 bg-ivory-200 dark:bg-charcoal-800 text-xs font-mono font-bold">
             <button
@@ -222,7 +224,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                 activeTab === 'upload' ? 'bg-white dark:bg-charcoal-900 text-forest-800 dark:text-forest-300 shadow-paper-ivory' : 'text-charcoal-500 dark:text-ivory-400'
               }`}
             >
-              Upload Document
+              {t('ingest_tab_upload')}
             </button>
             <button
               onClick={() => setActiveTab('paste')}
@@ -230,7 +232,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                 activeTab === 'paste' ? 'bg-white dark:bg-charcoal-900 text-forest-800 dark:text-forest-300 shadow-paper-ivory' : 'text-charcoal-500 dark:text-ivory-400'
               }`}
             >
-              Paste Text
+              {t('ingest_tab_paste')}
             </button>
             <button
               onClick={() => setActiveTab('benchmark')}
@@ -238,7 +240,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                 activeTab === 'benchmark' ? 'bg-white dark:bg-charcoal-900 text-forest-800 dark:text-forest-300 shadow-paper-ivory' : 'text-charcoal-500 dark:text-ivory-400'
               }`}
             >
-              1-Click Benchmark
+              {t('ingest_tab_benchmark')}
             </button>
           </div>
         </div>
@@ -261,10 +263,10 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               />
               <UploadCloud className="w-10 h-10 text-forest-700 dark:text-forest-400 mx-auto mb-3" />
               <p className="text-sm font-serif font-bold text-charcoal-900 dark:text-ivory-100">
-                {selectedFile ? selectedFile.name : 'Drag and drop medical report here, or click to browse'}
+                {selectedFile ? selectedFile.name : t('ingest_drop_title')}
               </p>
               <p className="text-xs text-charcoal-500 dark:text-ivory-400 mt-1 font-mono">
-                Supported: PDF (digital vector & scanned OCR), PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC
+                {t('ingest_drop_sub')}
               </p>
             </div>
 
@@ -279,7 +281,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                   disabled={isProcessing}
                   className="px-4 py-2 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-bold transition-all shadow-paper-ivory flex items-center gap-2"
                 >
-                  {isProcessing ? 'Screening Document...' : 'Run Extraction & Verification'}
+                  {isProcessing ? t('ingest_btn_processing') : t('ingest_btn_run')}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -303,7 +305,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                 disabled={isProcessing || !pastedText.trim()}
                 className="px-5 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-bold transition-all shadow-paper-ivory flex items-center gap-2"
               >
-                {isProcessing ? 'Analyzing...' : 'Parse Clinical Text'}
+                {isProcessing ? t('ingest_btn_processing') : t('ingest_tab_paste')}
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -316,10 +318,10 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
             <div>
               <h4 className="font-serif font-bold text-base text-charcoal-900 dark:text-ivory-100 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-forest-700 dark:text-forest-400" />
-                Standard Clinical Benchmark
+                {t('ingest_benchmark_title')}
               </h4>
               <p className="text-xs text-charcoal-600 dark:text-ivory-400 mt-1 max-w-lg">
-                Instantly load 16 laboratory biomarkers spanning Complete Blood Count (CBC) and Comprehensive Metabolic Panel (CMP) with simulated typographical distortions.
+                {t('ingest_benchmark_desc')}
               </p>
             </div>
             <button
@@ -327,7 +329,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               disabled={isProcessing}
               className="px-5 py-2.5 rounded-xl bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-mono font-bold shadow-paper-ivory transition-all whitespace-nowrap"
             >
-              {isProcessing ? 'Loading Benchmark...' : 'Load Benchmark Panel'}
+              {isProcessing ? t('ingest_btn_processing') : t('ingest_benchmark_btn')}
             </button>
           </div>
         )}
@@ -346,7 +348,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-ivory-200 dark:border-charcoal-800">
             <div>
               <span className="text-xs font-mono font-bold text-forest-700 dark:text-forest-400 uppercase tracking-wider">
-                Phase 2 • Pre-Analysis Ingested Text Review
+                {t('ingest_phase2')}
               </span>
               <p className="text-xs text-charcoal-500 dark:text-ivory-400 mt-0.5">
                 Engine: <b className="font-mono text-charcoal-800 dark:text-ivory-200">{extractionMethod}</b> • Editable before final commit
@@ -378,13 +380,13 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ivory-200 dark:border-charcoal-800">
             <div>
               <span className="text-xs font-mono font-bold text-forest-700 dark:text-forest-400 uppercase tracking-wider">
-                Phase 3 • Verification & Screening Results
+                {t('ingest_phase3')}
               </span>
               <h3 className="font-serif text-2xl font-bold text-charcoal-900 dark:text-ivory-50 mt-1">
                 {analysisResult.source_name} ({analysisResult.source_type})
               </h3>
               <p className="text-xs font-mono text-charcoal-500 dark:text-ivory-400 mt-0.5">
-                {analysisResult.total_count} Recognized Biomarkers • {analysisResult.flagged_count} Out-of-Range Flags • {analysisResult.normal_count} Normal
+                {analysisResult.total_count} {t('dash_biomarkers_screened')} • {analysisResult.flagged_count} {t('dash_out_of_range')} • {analysisResult.normal_count} {t('dash_normal')}
               </p>
             </div>
 
@@ -393,13 +395,13 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                 onClick={() => onExportCSV(filteredRecords)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-ivory-300 dark:border-charcoal-700 hover:border-forest-700 text-xs font-mono font-bold text-charcoal-700 dark:text-ivory-300 hover:bg-ivory-100 dark:hover:bg-charcoal-800 transition-colors shadow-paper-ivory"
               >
-                <Download className="w-3.5 h-3.5" /> Export CSV
+                <Download className="w-3.5 h-3.5" /> {t('dash_export_csv')}
               </button>
               <button
                 onClick={() => onExportPDF(analysisResult, filteredRecords)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-800 hover:bg-forest-900 text-ivory-50 text-xs font-mono font-bold transition-colors shadow-paper-ivory"
               >
-                <Download className="w-3.5 h-3.5" /> Clinical PDF
+                <Download className="w-3.5 h-3.5" /> {t('dash_clinical_pdf')}
               </button>
             </div>
           </div>
@@ -410,7 +412,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-charcoal-400" />
               <input
                 type="text"
-                placeholder="Search biomarker name..."
+                placeholder={t('gen_search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-ivory-300 dark:border-charcoal-700 bg-ivory-50/60 dark:bg-charcoal-950 text-charcoal-900 dark:text-ivory-100 text-xs focus:outline-none focus:ring-1 focus:ring-forest-600"
@@ -424,7 +426,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                   filterCategory === 'all' ? 'bg-white dark:bg-charcoal-900 text-forest-800 dark:text-forest-300 shadow-paper-ivory' : 'text-charcoal-500'
                 }`}
               >
-                All ({analysisResult.total_count})
+                {t('gen_all')} ({analysisResult.total_count})
               </button>
               <button
                 onClick={() => setFilterCategory('flagged')}
@@ -432,7 +434,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                   filterCategory === 'flagged' ? 'bg-white dark:bg-charcoal-900 text-clinical-danger shadow-paper-ivory' : 'text-charcoal-500'
                 }`}
               >
-                Flags ({analysisResult.flagged_count})
+                {t('gen_flags')} ({analysisResult.flagged_count})
               </button>
               <button
                 onClick={() => setFilterCategory('normal')}
@@ -440,7 +442,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
                   filterCategory === 'normal' ? 'bg-white dark:bg-charcoal-900 text-clinical-normal shadow-paper-ivory' : 'text-charcoal-500'
                 }`}
               >
-                Normal ({analysisResult.normal_count})
+                {t('gen_normal')} ({analysisResult.normal_count})
               </button>
             </div>
           </div>
@@ -450,12 +452,12 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-ivory-100 dark:bg-charcoal-800/60 text-charcoal-600 dark:text-ivory-300 font-mono font-bold uppercase tracking-wider border-y border-ivory-200 dark:border-charcoal-800">
                 <tr>
-                  <th className="py-3 px-4 font-serif font-bold text-xs capitalize">Biomarker</th>
-                  <th className="py-3 px-4">Measured</th>
-                  <th className="py-3 px-4">Unit</th>
-                  <th className="py-3 px-4">Reference Interval</th>
-                  <th className="py-3 px-4">Calibration Source</th>
-                  <th className="py-3 px-4">Clinical Classification</th>
+                  <th className="py-3 px-4 font-serif font-bold text-xs capitalize">{t('dash_th_biomarker')}</th>
+                  <th className="py-3 px-4">{t('dash_th_measured')}</th>
+                  <th className="py-3 px-4">{t('dash_th_unit')}</th>
+                  <th className="py-3 px-4">{t('dash_th_ref_interval')}</th>
+                  <th className="py-3 px-4">{t('dash_th_calibration')}</th>
+                  <th className="py-3 px-4">{t('dash_th_classification')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ivory-200 dark:divide-charcoal-800 text-charcoal-700 dark:text-ivory-300">

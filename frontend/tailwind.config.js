@@ -61,7 +61,23 @@ export default {
       },
       fontFamily: {
         serif: ['Newsreader', 'Fraunces', 'Georgia', 'serif'],
-        sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'sans-serif'],
+        sans: [
+          'Plus Jakarta Sans',
+          'Noto Sans Devanagari',
+          'Noto Sans Telugu',
+          'Noto Sans Tamil',
+          'Noto Sans Kannada',
+          'Noto Sans Malayalam',
+          'Noto Sans Bengali',
+          'Kohinoor Devanagari',
+          'Kohinoor Telugu',
+          'Kohinoor Tamil',
+          'Kohinoor Bangla',
+          'Nirmala UI',
+          'Inter',
+          '-apple-system',
+          'sans-serif'
+        ],
         mono: ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
