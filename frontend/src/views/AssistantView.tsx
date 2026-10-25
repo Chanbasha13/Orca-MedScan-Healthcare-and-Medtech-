@@ -257,7 +257,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
                 {t('asst_groq_missing_desc')}
               </p>
               <div className="mt-2 text-[11px] font-mono text-forest-900 dark:text-forest-200 bg-forest-100/60 dark:bg-forest-900/40 px-2.5 py-1 rounded-lg inline-block">
-                export GROQ_API_KEY="gsk_..."
+                export GROQ_API_KEY="your_api_key_here"
               </div>
             </div>
           </div>

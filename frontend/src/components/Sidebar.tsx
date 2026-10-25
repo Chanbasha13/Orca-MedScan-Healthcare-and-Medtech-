@@ -38,6 +38,8 @@ interface SidebarProps {
   onLoadBenchmark: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -48,10 +50,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLoadBenchmark,
   isCollapsed,
   onToggleCollapse,
+  mobileOpen = false,
+  onCloseMobile,
 }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
+
+  const handleNavClick = (view: NavView) => {
+    onSelectView(view);
+    if (onCloseMobile) onCloseMobile();
+  };
 
   const navItems: { label: NavView; transKey: TranslationKey; icon: React.ReactNode }[] = [
     { label: 'Dashboard', transKey: 'nav_dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -64,11 +73,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 bg-ivory-50 dark:bg-charcoal-900 border-r border-ivory-300 dark:border-charcoal-800 flex flex-col justify-between transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
-    >
+    <>
+      {mobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 z-40 bg-charcoal-950/60 backdrop-blur-sm md:hidden"
+        />
+      )}
+      <aside
+        className={`fixed top-0 left-0 bottom-0 z-50 bg-ivory-50 dark:bg-charcoal-900 border-r border-ivory-300 dark:border-charcoal-800 flex flex-col justify-between transition-all duration-300 ${
+          isCollapsed ? 'md:w-16' : 'md:w-64'
+        } w-64 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
       {/* Top Header */}
       <div>
         <div className="h-16 flex items-center justify-between px-4 border-b border-ivory-200 dark:border-charcoal-800">
@@ -132,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={item.label}
-                onClick={() => onSelectView(item.label)}
+                onClick={() => handleNavClick(item.label)}
                 title={isCollapsed ? translatedLabel : undefined}
                 className={`w-full flex items-center ${
                   isCollapsed ? 'justify-center' : 'justify-start'
@@ -213,5 +231,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
     </aside>
+  </>
   );
 };

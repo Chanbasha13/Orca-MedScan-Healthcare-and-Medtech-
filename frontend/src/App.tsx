@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Menu } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useLanguage } from './context/LanguageContext';
 import { Header } from './components/Header';
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Session history state
   const [history, setHistory] = useState<ReportAudit[]>(() => {
@@ -271,7 +273,7 @@ export const App: React.FC = () => {
 
   // Authenticated Enclave Workspace
   return (
-    <div className="min-h-screen bg-ivory-100 dark:bg-charcoal-950 text-charcoal-900 dark:text-ivory-50 flex font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-ivory-100 dark:bg-charcoal-950 text-charcoal-900 dark:text-ivory-50 flex font-sans transition-colors duration-200 w-full max-w-full overflow-x-hidden">
       {/* Persistent Left Sidebar */}
       <Sidebar
         currentView={navView}
@@ -281,21 +283,30 @@ export const App: React.FC = () => {
         onLoadBenchmark={handleLaunchBenchmark}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        mobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 transition-all duration-300 min-h-screen flex flex-col ${
-          isSidebarCollapsed ? 'ml-16' : 'ml-64'
-        }`}
+        className={`flex-1 transition-all duration-300 min-h-screen flex flex-col ml-0 ${
+          isSidebarCollapsed ? 'md:ml-16' : 'md:ml-64'
+        } w-full max-w-full overflow-x-hidden`}
       >
-        <header className="h-16 px-6 sm:px-8 border-b border-ivory-300 dark:border-charcoal-800 bg-ivory-50/80 dark:bg-charcoal-900/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
+        <header className="h-16 px-4 sm:px-8 border-b border-ivory-300 dark:border-charcoal-800 bg-ivory-50/80 dark:bg-charcoal-900/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-forest-700 dark:text-forest-400">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 -ml-1 mr-1 rounded-lg text-charcoal-700 dark:text-ivory-200 hover:bg-ivory-200 dark:hover:bg-charcoal-800 md:hidden"
+              aria-label="Toggle Mobile Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-forest-700 dark:text-forest-400 hidden sm:inline">
               {t('nav_active_workspace')}
             </span>
-            <span className="text-charcoal-400">/</span>
-            <span className="text-xs font-mono font-bold text-charcoal-800 dark:text-ivory-200">
+            <span className="text-charcoal-400 hidden sm:inline">/</span>
+            <span className="text-xs font-mono font-bold text-charcoal-800 dark:text-ivory-200 truncate">
               {navView === 'Dashboard' ? t('nav_dashboard') :
                navView === 'Analyze Report' ? t('nav_analyze') :
                navView === 'AI Assistant' ? t('nav_assistant') :
