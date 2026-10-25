@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 
@@ -475,10 +475,32 @@ def assistant_chat(req: AssistantChatRequest):
                 "language": lang
             }
 
-# If built frontend exists, serve it
-FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "frontend", "dist")
-if os.path.exists(FRONTEND_DIST):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="static")
+# -------------------------------------------------------------
+# Static Files & Single Page Application (SPA) Serving
+# -------------------------------------------------------------
+FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend", "dist")
+FRONTEND_ASSETS = os.path.join(FRONTEND_DIST, "assets")
+
+if os.path.isdir(FRONTEND_ASSETS):
+    app.mount("/assets", StaticFiles(directory=FRONTEND_ASSETS), name="assets")
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(full_path: str):
+    # Guard against intercepting non-existent API endpoints
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail=f"API endpoint '/{full_path}' not found.")
+    
+    # Serve specific static file from FRONTEND_DIST if it exists
+    target_file = os.path.join(FRONTEND_DIST, full_path)
+    if full_path and os.path.isfile(target_file):
+        return FileResponse(target_file)
+    
+    # SPA fallback: Return index.html for root and all client-side navigation routes
+    index_file = os.path.join(FRONTEND_DIST, "index.html")
+    if os.path.isfile(index_file):
+        return FileResponse(index_file)
+    
+    return PlainTextResponse("Orca MedScan API Server active. Frontend build not found.", status_code=200)
 
 if __name__ == "__main__":
     import uvicorn

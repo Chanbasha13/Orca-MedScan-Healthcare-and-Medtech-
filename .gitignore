@@ -1,77 +1,39 @@
+# Virtual environments
 .venv/
+venv/
+
+# Python caches
 __pycache__/
-*.pyc
+*.py[cod]
+
+# OS files
 .DS_Store
+
+# Streamlit
 .streamlit/
+
+# Node dependencies
+node_modules/
 frontend/node_modules/
+
+# Environment variables and API secrets (strictly kept private)
 .env
 .env.*
 !.env.example
 *.key
 data/.auth_vault.json
+
+# Build outputs
+build/
+.next/
+!frontend/dist/
+!frontend/dist/**
+
+# Temporary scripts and logs
 capture_*.py
 take_*.py
-
-# Environment variables and API secrets
-.env
-.env.*
-!.env.example
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-
-# Node.js
-node_modules/
-
-# Build outputs
-dist/
-build/
-.next/
-
-# Logs
-*.log
-
-# Environment variables and API secrets
-.env
-.env.*
-!.env.example
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-
-# Node.js
-node_modules/
-
-# Build outputs
-dist/
-build/
-.next/
-
-# Logs
-*.log
-
-# Keep API keys private
-.env
-.env.*
-!.env.example
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-
-# Node
-node_modules/
-dist/
-build/
-.next/
-
-# Logs
+debug_*.py
+reproduce_*.py
+test_ai_flow.py
+test_routing_behavior.py
 *.log
