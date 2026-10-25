@@ -52,3 +52,4 @@ Thyroid Stimulating Hormone (TSH)    5.4         mIU/L        0.4 - 4.5
 
 if __name__ == "__main__":
     create_sample_pdf("sample_patient_report.pdf")
+

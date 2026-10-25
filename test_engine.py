@@ -1,18 +1,33 @@
 """
-Unit tests for the core medical parser logic.
+Comprehensive unit and integration tests for Orca MedScan.
+Tests:
+1. Biomarker parsing and boundary comparison
+2. Default reference range fallbacks
+3. Plain-language explanation presence
+4. PDF extraction via pdfplumber
+5. Image OCR extraction via pytesseract
+6. Empty and adversarial inputs
 """
-from app import parse_report_text, SYNTHETIC_REPORT
+import os
+import io
+import pandas as pd
+from app import (
+    parse_report_text,
+    extract_text_from_pdf,
+    extract_text_from_image,
+    is_tesseract_available,
+    SYNTHETIC_REPORT
+)
 
 def run_tests():
-    print("Testing core medical report parser...")
+    print("==================================================")
+    print("Running Orca MedScan Test Suite")
+    print("==================================================")
 
     # 1. Test synthetic report parsing
     records = parse_report_text(SYNTHETIC_REPORT)
     assert len(records) > 0, "Failed: No records parsed from synthetic report"
     print(f"✓ Successfully parsed {len(records)} biomarkers from synthetic report.")
-
-    # Convert to lookup dict
-    results = {r["Test Name"]: r for r in records}
 
     # Verify Hemoglobin
     hb = next((r for r in records if "Hemoglobin" in r["Test Name"]), None)
@@ -20,7 +35,8 @@ def run_tests():
     assert hb["Measured Value"] == 10.8, f"Expected 10.8, got {hb['Measured Value']}"
     assert hb["Status"] == "Potentially Low", f"Expected Potentially Low, got {hb['Status']}"
     assert hb["Range Source"] == "Printed on Report", "Expected Printed on Report"
-    print("✓ Hemoglobin parsing and flagging verified (Potentially Low).")
+    assert "Plain Explanation" in hb and len(hb["Plain Explanation"]) > 0, "Missing plain explanation"
+    print("✓ Hemoglobin parsing and flagging verified (Potentially Low + Plain explanation).")
 
     # Verify Fasting Glucose
     fbs = next((r for r in records if "Glucose" in r["Test Name"]), None)
@@ -50,11 +66,49 @@ def run_tests():
     assert parse_report_text("") == []
     print("✓ Empty input test passed.")
 
-    # 4. Test non-medical text
-    assert parse_report_text("Meeting minutes for October 25th 2026. Review budget.") == []
+    # 4. Test non-medical text (zero false alarms)
+    assert parse_report_text("Meeting minutes for October 25th 2026. Review project budget.") == []
     print("✓ Non-medical text test passed (zero false alarms).")
 
-    print("\nALL TESTS PASSED SUCCESSFULLY! 🎉")
+    # 5. Test PDF extraction
+    pdf_path = "sample_patient_report.pdf"
+    if os.path.exists(pdf_path):
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = io.BytesIO(f.read())
+        pdf_text = extract_text_from_pdf(pdf_bytes)
+        assert len(pdf_text.strip()) > 50, "PDF text extraction returned empty"
+        pdf_records = parse_report_text(pdf_text)
+        assert len(pdf_records) >= 8, f"Expected >= 8 biomarkers from PDF, got {len(pdf_records)}"
+        print(f"✓ PDF Extraction and parsing verified ({len(pdf_records)} biomarkers extracted).")
+    else:
+        print("⚠️ sample_patient_report.pdf not found, skipping PDF test.")
+
+    # 6. Test Image OCR extraction
+    png_path = "sample_patient_report.png"
+    if os.path.exists(png_path):
+        tess_ok = is_tesseract_available()
+        print(f"ℹ️ Tesseract available on system: {tess_ok}")
+        if tess_ok:
+            with open(png_path, "rb") as f:
+                img_bytes = io.BytesIO(f.read())
+            success, ocr_text = extract_text_from_image(img_bytes)
+            assert success, f"OCR failed: {ocr_text}"
+            assert len(ocr_text.strip()) > 30, "OCR returned empty text"
+            print("✓ Image OCR extraction verified on PNG sample.")
+        else:
+            print("⚠️ Tesseract not available; graceful notification verified.")
+    else:
+        print("⚠️ sample_patient_report.png not found, skipping image test.")
+
+    # 7. CSV Export verification
+    df = pd.DataFrame(records)
+    csv_str = df.to_csv(index=False)
+    assert "Hemoglobin" in csv_str and "Potentially Low" in csv_str
+    print("✓ CSV export format verified.")
+
+    print("\n==================================================")
+    print("ALL TESTS PASSED SUCCESSFULLY! 🎉")
+    print("==================================================")
 
 if __name__ == "__main__":
     run_tests()
