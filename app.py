@@ -1,15 +1,14 @@
 """
-Orca MedScan — Clinical Intelligence Command Center & Multi-Format Diagnostic Analyzer
+Orca MedScan — Clinical Intelligence Platform & Multi-Format Laboratory Diagnostics
 Orcathon 2026: Healthcare & MedTech Track
 
 Architectural Capabilities:
-- Digital & Scanned PDFs (with automated OCR fallback via pdfplumber page rendering)
-- Multi-format Images: PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC/HEIF
-- Robust multi-strategy biomarker extraction with alias resolution & diagnostic tracing
-- Signature Interactive 3D Medical Holographic Document Scanner
-- Clinical Command Center Dashboard with dark executive aesthetics
-- Interactive Plotly biomarker distribution analytics
-- Exportable structured CSV and ReportLab clinical PDF reports
+- Multi-format Ingestion: Digital/Scanned PDFs (with automated OCR fallback), PNG, JPG, JPEG, WEBP, BMP, TIFF, HEIC/HEIF
+- Resilient Multi-strategy OCR Parser with clinical alias resolution & OCR typo auto-repair
+- Persistent Left Sidebar Navigation with Theme Toggle (Clinical Light / Deep Midnight)
+- Realistic 3D Interactive Clinical Document Workspace (Paper depth, multi-page stack, pointer parallax)
+- Executive Dashboard with dynamic session metrics & Plotly clinical distribution charts
+- Structured CSV Export and ReportLab Clinical PDF Summary Downloads
 """
 
 import io
@@ -30,7 +29,7 @@ try:
 except Exception:
     HEIF_AVAILABLE = False
 
-# ReportLab for PDF generation
+# ReportLab for clinical PDF generation
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -40,245 +39,20 @@ try:
 except Exception:
     REPORTLAB_AVAILABLE = False
 
-# Plotly for interactive clinical analytics
+# Plotly for clinical analytics
 try:
     import plotly.graph_objects as go
     PLOTLY_AVAILABLE = True
 except Exception:
     PLOTLY_AVAILABLE = False
 
-# Configure Streamlit page
+# Configure Streamlit page layout
 st.set_page_config(
     page_title="Orca MedScan | Clinical Intelligence",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
-
-# ---------------------------------------------------------
-# Custom Styling: Deep Midnight Healthcare Aesthetic
-# ---------------------------------------------------------
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-    :root {
-        --bg-midnight: #0A0F1D;
-        --surface-dark: #111827;
-        --surface-card: #161F30;
-        --border-subtle: rgba(56, 189, 248, 0.14);
-        --border-highlight: rgba(56, 189, 248, 0.35);
-        --cyan-neon: #38BDF8;
-        --cyan-glow: rgba(56, 189, 248, 0.25);
-        --mint-healthy: #10B981;
-        --rose-alert: #F43F5E;
-        --amber-warning: #F59E0B;
-        --slate-text: #94A3B8;
-        --white-crisp: #F8FAFC;
-    }
-
-    /* Overall Canvas */
-    .stApp {
-        background-color: var(--bg-midnight);
-        color: var(--white-crisp);
-        font-family: 'Inter', -apple-system, sans-serif;
-    }
-
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 3.5rem;
-        max-width: 1440px;
-    }
-
-    /* Typography */
-    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Inter', sans-serif;
-        color: var(--white-crisp);
-        letter-spacing: -0.02em;
-        font-weight: 700;
-    }
-
-    /* Hero Banner */
-    .hero-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0 20px 0;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-        margin-bottom: 24px;
-    }
-    .hero-title {
-        font-size: 1.95rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #FFFFFF 30%, #38BDF8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .hero-sub {
-        font-size: 0.88rem;
-        color: var(--slate-text);
-        margin-top: 4px;
-    }
-    .enclave-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(16, 185, 129, 0.12);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        color: #34D399;
-        padding: 5px 12px;
-        border-radius: 9999px;
-        font-size: 0.76rem;
-        font-family: 'JetBrains Mono', monospace;
-        letter-spacing: 0.05em;
-    }
-
-    /* Metric Card Component */
-    .metric-card-dark {
-        background: linear-gradient(145deg, #111827 0%, #161F30 100%);
-        border: 1px solid var(--border-subtle);
-        border-radius: 14px;
-        padding: 22px 24px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
-        position: relative;
-        overflow: hidden;
-        margin-bottom: 14px;
-    }
-    .metric-card-dark::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--cyan-neon), transparent);
-    }
-    .metric-label {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--slate-text);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: 6px;
-    }
-    .metric-number {
-        font-size: 2.3rem;
-        font-weight: 800;
-        color: var(--white-crisp);
-        font-family: 'JetBrains Mono', monospace;
-        line-height: 1.1;
-    }
-    .metric-caption {
-        font-size: 0.82rem;
-        color: #64748B;
-        margin-top: 6px;
-    }
-
-    /* Status Badges */
-    .pill-normal {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(16, 185, 129, 0.12);
-        color: #34D399;
-        border: 1px solid rgba(16, 185, 129, 0.35);
-        border-radius: 9999px;
-        padding: 5px 14px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .pill-high {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(244, 63, 94, 0.15);
-        color: #FB7185;
-        border: 1px solid rgba(244, 63, 94, 0.4);
-        border-radius: 9999px;
-        padding: 5px 14px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .pill-low {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(245, 158, 11, 0.14);
-        color: #FBBF24;
-        border: 1px solid rgba(245, 158, 11, 0.4);
-        border-radius: 9999px;
-        padding: 5px 14px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .pill-review {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(148, 163, 184, 0.12);
-        color: #CBD5E1;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 9999px;
-        padding: 5px 14px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* Result Row Card */
-    .biomarker-card {
-        background: #111827;
-        border: 1px solid rgba(148, 163, 184, 0.12);
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 10px;
-        transition: all 0.2s ease;
-    }
-    .biomarker-card:hover {
-        border-color: var(--border-highlight);
-        background: #151E30;
-    }
-
-    /* Empty State Container */
-    .empty-state-dark {
-        text-align: center;
-        background: linear-gradient(180deg, #111827 0%, #0D1322 100%);
-        border: 1.5px dashed rgba(56, 189, 248, 0.25);
-        border-radius: 16px;
-        padding: 48px 24px;
-        margin: 20px 0;
-    }
-
-    /* Form & Input adjustments for dark mode */
-    .stTextInput > div > div, .stSelectbox > div > div, .stTextArea > div > div {
-        background-color: #111827 !important;
-        color: #F8FAFC !important;
-        border-color: rgba(148, 163, 184, 0.2) !important;
-    }
-    
-    /* Primary Action Buttons */
-    .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #0284C7 0%, #0D9488 100%) !important;
-        color: #FFFFFF !important;
-        font-weight: 600 !important;
-        border: 1px solid rgba(56, 189, 248, 0.4) !important;
-        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3) !important;
-        border-radius: 9px !important;
-        padding: 10px 22px !important;
-    }
-    .stButton > button[kind="primary"]:hover {
-        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5) !important;
-        transform: translateY(-1px);
-    }
-</style>
-""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # 1. Centralized Biomarker Registry & Reference Database
@@ -291,7 +65,8 @@ REFERENCE_DB = [
             r"\bhemo(?:a)?globin\b",
             r"\bhgb\b",
             r"\bhb\b",
-            r"\bs\.?\s*hemo(?:a)?globin\b"
+            r"\bs\.?\s*hemo(?:a)?globin\b",
+            r"\bhb%"
         ],
         "unit": "g/dL",
         "min": 12.0,
@@ -310,7 +85,8 @@ REFERENCE_DB = [
             r"\btotal leukocyte count\b",
             r"\btlc\b",
             r"\bt\.l\.c\b",
-            r"\bleucocyte count\b"
+            r"\bleucocyte count\b",
+            r"\bleukocyte count\b"
         ],
         "unit": "cells/mcL",
         "min": 4000.0,
@@ -339,7 +115,8 @@ REFERENCE_DB = [
         "patterns": [
             r"\bplatelet(?:s)?(?:\s+count)?\b",
             r"\bplt(?:\s+count)?\b",
-            r"\bthrombocyte count\b"
+            r"\bthrombocyte count\b",
+            r"\btotal platelet(?:s)?\b"
         ],
         "unit": "/mcL",
         "min": 150000.0,
@@ -353,10 +130,13 @@ REFERENCE_DB = [
         "patterns": [
             r"\bfasting (?:blood )?(?:sugar|glucose)\b",
             r"\bfbs\b",
+            r"\bfbg\b",
+            r"\bfpg\b",
             r"\bf\.b\.s\b",
             r"\bglucose\s*[,:]?\s*fasting\b",
             r"\bblood sugar\s*[,:]?\s*fasting\b",
-            r"\bfasting sugar\b"
+            r"\bfasting sugar\b",
+            r"\bfasting plasma glucose\b"
         ],
         "unit": "mg/dL",
         "min": 70.0,
@@ -370,6 +150,7 @@ REFERENCE_DB = [
         "patterns": [
             r"\bpost[\s-]prandial (?:blood )?(?:sugar|glucose)\b",
             r"\bppbs\b",
+            r"\bppg\b",
             r"\bp\.p\.b\.s\b",
             r"\bglucose\s*[,:]?\s*pp\b",
             r"\bblood sugar\s*[,:]?\s*pp\b",
@@ -386,6 +167,7 @@ REFERENCE_DB = [
         "name": "Glycated Hemoglobin (HbA1c)",
         "patterns": [
             r"\bhba1c\b",
+            r"\bhba[l1t]c\b",
             r"\bglycated hemo(?:a)?globin\b",
             r"\bhaemoglobin a1c\b",
             r"\bhemoglobin a1c\b",
@@ -407,7 +189,9 @@ REFERENCE_DB = [
             r"\bs\.?\s*cholesterol\b",
             r"\btc\b",
             r"\bt\.c\b",
-            r"\bcholesterol\s*[,:]?\s*total\b"
+            r"\bcholesterol\s*[,:]?\s*total\b",
+            r"\btotal chol\b",
+            r"\bchol\b"
         ],
         "unit": "mg/dL",
         "min": 125.0,
@@ -461,6 +245,7 @@ REFERENCE_DB = [
             r"\btriglyceride(?:s)?\b",
             r"\btg\b",
             r"\bt\.g\b",
+            r"\btrigs?\b",
             r"\bserum triglycerides\b",
             r"\bs\.?\s*triglycerides\b"
         ],
@@ -477,7 +262,8 @@ REFERENCE_DB = [
             r"\b(?:serum )?creatinine\b",
             r"\bs\.?\s*creatinine\b",
             r"\bs\.?\s*creat\b",
-            r"\bcreat\b"
+            r"\bcreat\b",
+            r"\bcreatin\b"
         ],
         "unit": "mg/dL",
         "min": 0.6,
@@ -678,13 +464,54 @@ End of Report. Authenticated by Dr. K. Sharma (MD, Pathology).
 """
 
 # ---------------------------------------------------------
-# 3. Robust Extraction & Parsing Engine
+# 3. Robust Extraction & Pre-Cleaning Engine
 # ---------------------------------------------------------
-NUMBER_REGEX = re.compile(r"(?<![A-Za-z0-9.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)(?![0-9.])")
+NUMBER_REGEX = re.compile(r"(?<![A-Za-z0-9.])(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:,\d{1,2})?|\d+(?:\.\d+)?)(?![0-9.])")
 
 def clean_num_str(raw: str) -> float:
-    sanitized = raw.replace(",", "").strip()
-    return float(sanitized)
+    """Intelligently converts strings with commas (either decimals or thousands) to float."""
+    s = raw.strip()
+    if re.match(r"^\d+,\d{1,2}$", s):
+        s = s.replace(",", ".")
+    else:
+        s = s.replace(",", "")
+    return float(s)
+
+def pre_clean_ocr_line(raw: str) -> str:
+    """
+    Cleans up noisy OCR artifacts, resolves joined words, and fixes common character confusions
+    without inventing data.
+    """
+    s = raw.replace("\t", " ")
+    s = s.replace("—", " - ").replace("§", " ").replace("°", " ").replace("‘", " ").replace("’", " ")
+    s = re.sub(r"\.{2,}", " ", s)
+
+    # Split joined words: LeucocyteCount -> Leucocyte Count
+    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", s)
+
+    # Separate attached punctuation: PLT( -> PLT (
+    s = re.sub(r"([A-Za-z0-9])([(\[:])", r"\1 \2", s)
+    s = re.sub(r"([)\]:])([A-Za-z0-9])", r"\1 \2", s)
+
+    # Normalize clinical acronym OCR distortions
+    s = re.sub(r"\b[Hh]b[Aa]?[lt1][cC]?\b", "HbA1c", s)
+    s = re.sub(r"\b[Hh]ate\b", "HbA1c", s)
+    s = re.sub(r"\b[Tt]o[lt]al\s*[Cc]hol[a-z]*\b", "Total Cholesterol", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Hh][Dd][Ll]\s*([Cc]hol[a-z]*)", r"HDL \1", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Ll][Oo0][Ll]\s*([Cc]hol[a-z]*)", r"LDL \1", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Tt][Aa]\s*\(?[Tt]na[a-z]*\b", "Triglycerides", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Tt]rigs?\b", "Triglycerides", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[Ss]a\s*[Pp][Tt]i?\s*[Aa]?[Ll]?[Tt]?\b", "SGPT", s)
+    s = re.sub(r"\b1[Hh]\b", "TSH", s)
+    s = re.sub(r"\b[Pp]lat[a-z]*\s*[Cc]oun[a-z]*\b", "Platelet Count", s, flags=re.IGNORECASE)
+
+    # Fix contextual numeric OCR errors: IO5 -> 105, O.85 -> 0.85, 2I8 -> 218
+    s = re.sub(r"\b[Il](?=[Oo\d])", "1", s)
+    s = re.sub(r"(?<=[0-9])[Il](?=[0-9]|\b)", "1", s)
+    s = re.sub(r"(?<=[0-9])[Oo](?=[0-9]|\b)", "0", s)
+    s = re.sub(r"\b[Oo](?=\.[0-9])", "0", s)
+
+    return s.strip()
 
 def extract_printed_range(line: str):
     interval_match = re.search(r"(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:,\d+)*(?:\.\d+)?)", line)
@@ -722,16 +549,13 @@ def detect_printed_flag(line: str) -> str:
         return "Low"
     return ""
 
-def sanitize_line(raw: str) -> str:
-    s = raw.replace("\t", " ")
-    s = re.sub(r"\.{2,}", " ", s)
-    return s.strip()
-
 def parse_report_with_diagnostics(raw_text: str):
-    lines = [sanitize_line(l) for l in raw_text.splitlines() if l.strip()]
+    raw_lines = [l for l in raw_text.splitlines() if l.strip()]
+    cleaned_lines = [pre_clean_ocr_line(l) for l in raw_lines]
+
     extracted_records = []
     seen_biomarkers = set()
-    recognized_lines = set()
+    recognized_indices = set()
     unrecognized_candidates = []
 
     def is_metadata_line(l: str) -> bool:
@@ -741,8 +565,8 @@ def parse_report_with_diagnostics(raw_text: str):
             return not has_test
         return False
 
-    # Strategy 1: In-line extraction
-    for idx, line in enumerate(lines):
+    # Strategy 1: In-line matching
+    for idx, (raw_l, line) in enumerate(zip(raw_lines, cleaned_lines)):
         if is_metadata_line(line):
             continue
 
@@ -808,6 +632,7 @@ def parse_report_with_diagnostics(raw_text: str):
 
             extracted_records.append({
                 "Test Name": bio["name"],
+                "Original Label": raw_l.split()[0] if raw_l.split() else bio["name"],
                 "Measured Value": measured_val,
                 "Unit": bio["unit"],
                 "Reference Range": range_display,
@@ -817,17 +642,17 @@ def parse_report_with_diagnostics(raw_text: str):
                 "Clinical Context": bio["desc"],
                 "Plain Explanation": bio.get("plain_note", ""),
                 "Report Flag": printed_flag,
-                "Raw Line": line
+                "Raw Line": raw_l
             })
             seen_biomarkers.add(bio["id"])
-            recognized_lines.add(idx)
+            recognized_indices.add(idx)
 
-    # Strategy 2: Two-line / multiline column matching
-    for idx in range(len(lines) - 1):
-        if idx in recognized_lines:
+    # Strategy 2: Two-line / block matching
+    for idx in range(len(cleaned_lines) - 1):
+        if idx in recognized_indices:
             continue
-        line_cur = lines[idx]
-        line_next = lines[idx + 1]
+        line_cur = cleaned_lines[idx]
+        line_next = cleaned_lines[idx + 1]
 
         for bio in REFERENCE_DB:
             if bio["id"] in seen_biomarkers:
@@ -874,6 +699,7 @@ def parse_report_with_diagnostics(raw_text: str):
 
             extracted_records.append({
                 "Test Name": bio["name"],
+                "Original Label": line_cur.split()[0] if line_cur.split() else bio["name"],
                 "Measured Value": measured_val,
                 "Unit": bio["unit"],
                 "Reference Range": range_display,
@@ -883,23 +709,23 @@ def parse_report_with_diagnostics(raw_text: str):
                 "Clinical Context": bio["desc"],
                 "Plain Explanation": bio.get("plain_note", ""),
                 "Report Flag": detect_printed_flag(line_next),
-                "Raw Line": f"{line_cur} -> {line_next}"
+                "Raw Line": f"{raw_lines[idx]} -> {raw_lines[idx+1]}"
             })
             seen_biomarkers.add(bio["id"])
-            recognized_lines.add(idx)
-            recognized_lines.add(idx + 1)
+            recognized_indices.add(idx)
+            recognized_indices.add(idx + 1)
 
-    # Candidates for extraction telemetry
-    for idx, line in enumerate(lines):
-        if idx in recognized_lines or is_metadata_line(line):
+    # Diagnostic candidate lines
+    for idx, (raw_l, line) in enumerate(zip(raw_lines, cleaned_lines)):
+        if idx in recognized_indices or is_metadata_line(line):
             continue
         has_num = bool(NUMBER_REGEX.search(line))
-        has_letters = bool(re.search(r"[A-Za-z]{3,}", line))
+        has_letters = bool(re.search(r"[A-Za-z]{2,}", line))
         if has_num and has_letters and not re.search(r"\b(?:page|doctor|signature|accredited|end of report)\b", line, re.IGNORECASE):
-            unrecognized_candidates.append(line)
+            unrecognized_candidates.append(raw_l)
 
     diagnostics = {
-        "total_lines": len(lines),
+        "total_lines": len(raw_lines),
         "recognized_count": len(extracted_records),
         "recognized_labels": [r["Test Name"] for r in extracted_records],
         "unrecognized_candidates": unrecognized_candidates
@@ -1033,14 +859,14 @@ def generate_pdf_audit_report(meta: dict, records: list) -> bytes:
         parent=styles["Heading1"],
         fontSize=18,
         leading=22,
-        textColor=colors.HexColor("#0F1E36")
+        textColor=colors.HexColor("#0F172A")
     )
     sub_style = ParagraphStyle(
         "MedSub",
         parent=styles["Normal"],
         fontSize=9,
         leading=12,
-        textColor=colors.HexColor("#64748B")
+        textColor=colors.HexColor("#475569")
     )
 
     story = [
@@ -1062,7 +888,7 @@ def generate_pdf_audit_report(meta: dict, records: list) -> bytes:
 
     table = Table(table_data, colWidths=[160, 60, 60, 150, 110])
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F1E36")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F766E")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
@@ -1078,273 +904,161 @@ def generate_pdf_audit_report(meta: dict, records: list) -> bytes:
     return buf.getvalue()
 
 # ---------------------------------------------------------
-# 6. Signature 3D Interactive Scanner Centerpiece
+# 6. Realistic 3D Interactive Clinical Document Sheet
 # ---------------------------------------------------------
-def render_3d_scanner_centerpiece():
-    """Renders the signature WebGL/Canvas 3D interactive holographic medical document."""
-    html_code = """
+def render_3d_document_sheet(doc_name: str, snippet_text: str, theme: str):
+    """
+    Renders an authentic 3D laboratory document sheet with physical stacked page depth,
+    margin guides, and interactive pointer tilt.
+    """
+    is_dark = (theme == "Dark")
+    bg_card = "#1E293B" if is_dark else "#FFFFFF"
+    text_color = "#F8FAFC" if is_dark else "#0F172A"
+    sub_color = "#94A3B8" if is_dark else "#64748B"
+    border_color = "rgba(56, 189, 248, 0.25)" if is_dark else "rgba(15, 118, 110, 0.2)"
+    paper_shadow = "0 15px 35px rgba(0,0,0,0.6)" if is_dark else "0 10px 25px rgba(15, 23, 42, 0.08)"
+
+    escaped_doc = doc_name.replace("'", "\\'")
+    escaped_lines = [l.replace("'", "\\'").strip() for l in snippet_text.splitlines()[:6] if l.strip()]
+    lines_html = "".join([f"<div style='font-family: monospace; font-size: 0.72rem; color: {sub_color}; margin-bottom: 4px;'>{l}</div>" for l in escaped_lines])
+
+    html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background-color: transparent;
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            background: transparent;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 340px;
-        }
-
-        .viewport-3d {
-            width: 100%;
-            height: 330px;
-            perspective: 1100px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: crosshair;
-        }
-
-        .holo-card {
-            width: 520px;
             height: 290px;
-            background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.85) 100%);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 16px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15);
-            transform-style: preserve-3d;
-            transform: rotateX(16deg) rotateY(-12deg);
-            transition: transform 0.1s ease-out;
+        }}
+        .viewport-3d {{
+            width: 100%;
+            height: 280px;
+            perspective: 1000px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }}
+        .paper-stack {{
             position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-
-        /* 3D Grid Blueprint */
-        .grid-layer {
+            width: 480px;
+            height: 250px;
+            transform-style: preserve-3d;
+            transform: rotateX(8deg) rotateY(-6deg);
+            transition: transform 0.12s ease-out;
+        }}
+        /* Underneath Page 2 */
+        .page-back {{
             position: absolute;
             inset: 0;
-            background-image: 
-                linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
-            background-size: 24px 24px;
-            transform: translateZ(10px);
-            pointer-events: none;
-        }
-
-        /* Sweeping Volumetric Laser */
-        .laser-beam {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #38BDF8, #00F2FE, #38BDF8, transparent);
-            box-shadow: 0 0 18px #38BDF8, 0 0 35px #00F2FE;
-            animation: sweepLaser 3.5s ease-in-out infinite alternate;
-            transform: translateZ(28px);
-        }
-
-        @keyframes sweepLaser {
-            0% { top: 8%; opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { top: 90%; opacity: 0.8; }
-        }
-
-        /* Header Info Inside Holo */
-        .holo-header {
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
-            transform: translateZ(20px);
-        }
-        .holo-title {
-            color: #F8FAFC;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-        .holo-status {
-            color: #34D399;
-            font-size: 0.72rem;
-            background: rgba(16, 185, 129, 0.18);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            padding: 3px 8px;
-            border-radius: 9999px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .holo-status-dot {
-            width: 6px;
-            height: 6px;
-            background: #34D399;
-            border-radius: 50%;
-            animation: pulseDot 1.5s infinite;
-        }
-        @keyframes pulseDot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.8); }
-        }
-
-        /* Floating 3D Biomarker Nodes */
-        .nodes-container {
-            padding: 18px 22px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            transform: translateZ(35px);
-        }
-        .holo-node {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: {bg_card};
+            border: 1px solid {border_color};
             border-radius: 8px;
-            padding: 9px 12px;
+            transform: translateZ(-8px) rotate(1.2deg);
+            opacity: 0.7;
+            box-shadow: {paper_shadow};
+        }}
+        /* Underneath Page 3 */
+        .page-back-2 {{
+            position: absolute;
+            inset: 0;
+            background: {bg_card};
+            border: 1px solid {border_color};
+            border-radius: 8px;
+            transform: translateZ(-16px) rotate(-1.5deg);
+            opacity: 0.4;
+            box-shadow: {paper_shadow};
+        }}
+        /* Top Active Document Sheet */
+        .page-front {{
+            position: absolute;
+            inset: 0;
+            background: {bg_card};
+            border: 1px solid {border_color};
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: {paper_shadow};
+            transform: translateZ(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }}
+        .header-bar {{
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.2s ease;
-        }
-        .holo-node:hover {
-            border-color: #38BDF8;
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
-            transform: translateZ(48px);
-        }
-        .node-name {
-            color: #94A3B8;
-            font-size: 0.76rem;
-            font-weight: 600;
-        }
-        .node-val {
-            font-size: 0.82rem;
-            font-weight: 700;
-        }
-        .val-low { color: #FBBF24; }
-        .val-high { color: #FB7185; }
-        .val-norm { color: #34D399; }
-
-        /* Sonar Ripple on Click */
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid #38BDF8;
-            animation: rippleAnim 1.2s cubic-bezier(0, 0.2, 0.8, 1) forwards;
-            pointer-events: none;
-            transform: translateZ(30px);
-        }
-        @keyframes rippleAnim {
-            0% { width: 0; height: 0; opacity: 1; }
-            100% { width: 450px; height: 450px; opacity: 0; }
-        }
-
-        /* Bottom Telemetry */
-        .holo-footer {
-            position: absolute;
-            bottom: 12px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            color: #64748B;
+            border-bottom: 1.5px solid {border_color};
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }}
+        .doc-tag {{
             font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
             letter-spacing: 0.05em;
-            transform: translateZ(15px);
-        }
+            color: {'#34D399' if is_dark else '#0F766E'};
+            background: {'rgba(16, 185, 129, 0.12)' if is_dark else '#F0FDFA'};
+            padding: 2px 8px;
+            border-radius: 4px;
+        }}
+        .watermark {{
+            position: absolute;
+            right: 20px;
+            bottom: 12px;
+            font-size: 0.65rem;
+            color: {sub_color};
+            opacity: 0.6;
+            letter-spacing: 0.04em;
+        }}
     </style>
     </head>
     <body>
         <div class="viewport-3d" id="viewport">
-            <div class="holo-card" id="card">
-                <div class="grid-layer"></div>
-                <div class="laser-beam"></div>
-
-                <div class="holo-header">
-                    <div class="holo-title">🧬 CLINICAL SCANNER CORE // 3D TELEMETRY</div>
-                    <div class="holo-status">
-                        <div class="holo-status-dot"></div>
-                        ACTIVE SCAN
+            <div class="paper-stack" id="stack">
+                <div class="page-back-2"></div>
+                <div class="page-back"></div>
+                <div class="page-front">
+                    <div>
+                        <div class="header-bar">
+                            <span style="font-weight: 700; font-size: 0.82rem; color: {text_color};">📄 {escaped_doc}</span>
+                            <span class="doc-tag">CLINICAL SPECIMEN</span>
+                        </div>
+                        <div style="font-size: 0.74rem; color: {sub_color}; margin-bottom: 8px;"><b>SPECIMEN STREAM PREVIEW:</b></div>
+                        {lines_html}
                     </div>
-                </div>
-
-                <div class="nodes-container">
-                    <div class="holo-node">
-                        <span class="node-name">Hemoglobin</span>
-                        <span class="node-val val-low">10.8 g/dL ▼</span>
-                    </div>
-                    <div class="holo-node">
-                        <span class="node-name">Glucose (F)</span>
-                        <span class="node-val val-high">132 mg/dL ▲</span>
-                    </div>
-                    <div class="holo-node">
-                        <span class="node-name">Cholesterol</span>
-                        <span class="node-val val-high">228 mg/dL ▲</span>
-                    </div>
-                    <div class="holo-node">
-                        <span class="node-name">Platelet Count</span>
-                        <span class="node-val val-norm">240k /mcL ●</span>
-                    </div>
-                    <div class="holo-node">
-                        <span class="node-name">Creatinine</span>
-                        <span class="node-val val-norm">1.1 mg/dL ●</span>
-                    </div>
-                    <div class="holo-node">
-                        <span class="node-name">HbA1c</span>
-                        <span class="node-val val-high">6.8 % ▲</span>
-                    </div>
-                </div>
-
-                <div class="holo-footer">
-                    <span>VOLUMETRIC REFERENCE VERIFICATION</span>
-                    <span>PARALLAX DEPTH: 1100PX // 60 FPS</span>
+                    <div class="watermark">ORCA CLINICAL ENGINE // 3D DOCUMENT STACK</div>
                 </div>
             </div>
         </div>
-
         <script>
             const viewport = document.getElementById('viewport');
-            const card = document.getElementById('card');
+            const stack = document.getElementById('stack');
 
-            // Responsive 3D Mouse Parallax
-            viewport.addEventListener('mousemove', (e) => {
+            viewport.addEventListener('mousemove', (e) => {{
                 const rect = viewport.getBoundingClientRect();
                 const x = e.clientX - rect.left - rect.width / 2;
                 const y = e.clientY - rect.top - rect.height / 2;
-                
-                const rotY = (x / (rect.width / 2)) * 18;
-                const rotX = -(y / (rect.height / 2)) * 18;
+                const rotY = (x / (rect.width / 2)) * 14;
+                const rotX = -(y / (rect.height / 2)) * 12;
+                stack.style.transform = `rotateX(${{rotX}}deg) rotateY(${{rotY}}deg)`;
+            }});
 
-                card.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-            });
-
-            viewport.addEventListener('mouseleave', () => {
-                card.style.transform = `rotateX(16deg) rotateY(-12deg)`;
-            });
-
-            // Interactive Ripple Pulse on Click
-            viewport.addEventListener('click', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                const ripple = document.createElement('div');
-                ripple.className = 'ripple';
-                ripple.style.left = (x - 225) + 'px';
-                ripple.style.top = (y - 225) + 'px';
-                card.appendChild(ripple);
-
-                setTimeout(() => ripple.remove(), 1200);
-            });
+            viewport.addEventListener('mouseleave', () => {{
+                stack.style.transform = 'rotateX(8deg) rotateY(-6deg)';
+            }});
         </script>
     </body>
     </html>
     """
-    components.html(html_code, height=340, scrolling=False)
+    components.html(html_code, height=290, scrolling=False)
 
 # ---------------------------------------------------------
 # 7. Session State Management
@@ -1362,6 +1076,8 @@ def init_session_state():
         st.session_state["raw_text_buffer"] = ""
     if "nav_view" not in st.session_state:
         st.session_state["nav_view"] = "Dashboard"
+    if "theme" not in st.session_state:
+        st.session_state["theme"] = "Light"
 
 def add_report_to_history(source_name: str, source_type: str, records: list, raw_text: str, diagnostics: dict):
     rep_id = f"AUDIT-{len(st.session_state['history']) + 1:03d}"
@@ -1385,58 +1101,166 @@ def add_report_to_history(source_name: str, source_type: str, records: list, raw
     return entry
 
 # ---------------------------------------------------------
-# 8. Navigation & Top-Level Hero Header
+# 8. Dynamic Theme CSS Injector
 # ---------------------------------------------------------
-def render_header_and_navigation():
-    # Hero Banner
-    st.markdown("""
-    <div class="hero-container">
-        <div>
-            <h1 class="hero-title">🩺 ORCA MEDSCAN</h1>
-            <div class="hero-sub">Clinical Intelligence Command Center & Multi-Format Laboratory Diagnostics</div>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <div class="enclave-badge">
-                <span style="font-size: 0.9rem;">●</span> ZERO-CLOUD ENCLAVE // LOCAL RUNTIME
+def apply_theme_css(theme: str):
+    if theme == "Dark":
+        css = """
+        <style>
+            :root {
+                --bg-base: #0B1120;
+                --surface-card: #111827;
+                --surface-subtle: #1E293B;
+                --border-color: #1F2937;
+                --text-main: #F8FAFC;
+                --text-muted: #94A3B8;
+                --accent-primary: #0D9488;
+                --badge-norm-bg: rgba(16, 185, 129, 0.15);
+                --badge-norm-text: #34D399;
+                --badge-high-bg: rgba(244, 63, 94, 0.15);
+                --badge-high-text: #FB7185;
+                --badge-low-bg: rgba(245, 158, 11, 0.15);
+                --badge-low-text: #FBBF24;
+            }
+            .stApp { background-color: var(--bg-base); color: var(--text-main); }
+            .metric-box {
+                background: var(--surface-card);
+                border: 1px solid var(--border-color);
+                border-radius: 10px;
+                padding: 18px 20px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+                margin-bottom: 12px;
+            }
+            .stTextInput>div>div, .stSelectbox>div>div, .stTextArea>div>div {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
+                border-color: var(--border-color) !important;
+            }
+        </style>
+        """
+    else:
+        css = """
+        <style>
+            :root {
+                --bg-base: #F8FAFC;
+                --surface-card: #FFFFFF;
+                --surface-subtle: #F1F5F9;
+                --border-color: #E2E8F0;
+                --text-main: #0F172A;
+                --text-muted: #475569;
+                --accent-primary: #0F766E;
+                --badge-norm-bg: #ECFDF5;
+                --badge-norm-text: #065F46;
+                --badge-high-bg: #FFF1F2;
+                --badge-high-text: #9F1239;
+                --badge-low-bg: #FFFBEB;
+                --badge-low-text: #92400E;
+            }
+            .stApp { background-color: var(--bg-base); color: var(--text-main); }
+            .metric-box {
+                background: var(--surface-card);
+                border: 1px solid var(--border-color);
+                border-radius: 10px;
+                padding: 18px 20px;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+                margin-bottom: 12px;
+            }
+            .stTextInput>div>div, .stSelectbox>div>div, .stTextArea>div>div {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
+                border-color: var(--border-color) !important;
+            }
+        </style>
+        """
+    st.markdown(css, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# 9. Persistent Left Sidebar Navigation
+# ---------------------------------------------------------
+def render_sidebar():
+    with st.sidebar:
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+            <span style="font-size: 1.8rem;">🩺</span>
+            <div>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em;">ORCA MEDSCAN</h3>
+                <span style="font-size: 0.72rem; color: #64748B; font-weight: 600; text-transform: uppercase;">Clinical Diagnostics</span>
             </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        nav_options = [
+            "📊 Dashboard",
+            "🔬 Analyze Report",
+            "📋 Report History",
+            "🔍 Extraction Diagnostics",
+            "ℹ️ Clinical Safety / About"
+        ]
+        nav_keys = {
+            "📊 Dashboard": "Dashboard",
+            "🔬 Analyze Report": "Analyze Report",
+            "📋 Report History": "Report History",
+            "🔍 Extraction Diagnostics": "Extraction Diagnostics",
+            "ℹ️ Clinical Safety / About": "About & Safety"
+        }
+
+        current_nav_key = st.session_state["nav_view"]
+        current_idx = list(nav_keys.values()).index(current_nav_key)
+
+        selected_nav = st.radio(
+            "Primary Navigation",
+            nav_options,
+            index=current_idx,
+            label_visibility="collapsed"
+        )
+        new_nav_key = nav_keys[selected_nav]
+        if new_nav_key != current_nav_key:
+            st.session_state["nav_view"] = new_nav_key
+            st.rerun()
+
+        st.markdown("---")
+        st.subheader("⚡ Quick Actions")
+        if st.button("Load 1-Click Benchmark", use_container_width=True, type="primary"):
+            records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
+            add_report_to_history("Metropolis Diagnostic Benchmark (MET-98421)", "Synthetic Benchmark", records, SYNTHETIC_REPORT, diag)
+            st.session_state["nav_view"] = "Dashboard"
+            st.rerun()
+
+        st.markdown("---")
+        # Session Status
+        audits_count = len(st.session_state["history"])
+        st.caption(f"Session Audits: **{audits_count}** active")
+        st.caption(f"OCR Engine: **{'Active (Local)' if is_tesseract_available() else 'Not Installed'}**")
+
+        st.markdown("---")
+        # Theme Toggle at Bottom of Sidebar
+        st.markdown("<div style='font-size: 0.8rem; font-weight: 600; margin-bottom: 6px;'>INTERFACE THEME</div>", unsafe_allow_html=True)
+        theme_choice = st.radio(
+            "Interface Theme",
+            ["Light", "Dark"],
+            index=0 if st.session_state["theme"] == "Light" else 1,
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        if theme_choice != st.session_state["theme"]:
+            st.session_state["theme"] = theme_choice
+            st.rerun()
+
+# ---------------------------------------------------------
+# 10. View: Dashboard
+# ---------------------------------------------------------
+def render_dashboard_view():
+    st.markdown("""
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin: 0; font-size: 1.8rem; font-weight: 800;">Clinical Intelligence Dashboard</h2>
+            <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Laboratory indicator screening, reference verification, and anomaly surveillance.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    views = [
-        "📊 Command Dashboard",
-        "🔬 Ingest & Analyze",
-        "📋 Audit History",
-        "🔍 Extraction Telemetry",
-        "ℹ️ Clinical Safety"
-    ]
-    view_keys = {
-        "📊 Command Dashboard": "Dashboard",
-        "🔬 Ingest & Analyze": "Analyze Report",
-        "📋 Audit History": "Report History",
-        "🔍 Extraction Telemetry": "Extraction Diagnostics",
-        "ℹ️ Clinical Safety": "About & Safety"
-    }
-
-    current_idx = list(view_keys.values()).index(st.session_state["nav_view"])
-    selected_label = st.radio(
-        "Navigation",
-        views,
-        index=current_idx,
-        horizontal=True,
-        label_visibility="collapsed"
-    )
-    new_view = view_keys[selected_label]
-    if new_view != st.session_state["nav_view"]:
-        st.session_state["nav_view"] = new_view
-        st.rerun()
-
-    st.markdown("<hr style='margin-top: 6px; margin-bottom: 24px; border-color: rgba(148, 163, 184, 0.12);'>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# 9. View: Command Dashboard
-# ---------------------------------------------------------
-def render_dashboard_view():
     history = st.session_state["history"]
     total_audits = len(history)
 
@@ -1451,65 +1275,73 @@ def render_dashboard_view():
         total_uncertain = 0
         total_normal = 0
 
-    # Top Row: 3D Holographic Centerpiece + Real-Time Telemetry
-    col_3d, col_stats = st.columns([7, 5])
-
-    with col_3d:
-        render_3d_scanner_centerpiece()
-
-    with col_stats:
+    # Metrics Row
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
         st.markdown(f"""
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px;">
-            <div class="metric-card-dark">
-                <div class="metric-label">Reports Audited</div>
-                <div class="metric-number">{total_audits}</div>
-                <div class="metric-caption">Session telemetry records</div>
-            </div>
-            <div class="metric-card-dark">
-                <div class="metric-label">Biomarkers Screened</div>
-                <div class="metric-number">{total_indicators}</div>
-                <div class="metric-caption">{total_normal} in verified interval</div>
-            </div>
-            <div class="metric-card-dark">
-                <div class="metric-label">Out-of-Range Flags</div>
-                <div class="metric-number" style="color: {'#FB7185' if total_flagged > 0 else '#34D399'};">{total_flagged}</div>
-                <div class="metric-caption">Requiring clinical attention</div>
-            </div>
-            <div class="metric-card-dark">
-                <div class="metric-label">Needs Review</div>
-                <div class="metric-number" style="color: #94A3B8;">{total_uncertain}</div>
-                <div class="metric-caption">Atypical or non-standard format</div>
-            </div>
+        <div class="metric-box">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Reports Analyzed</div>
+            <div style="font-size: 2.1rem; font-weight: 800; line-height: 1.1; margin-top: 4px;">{total_audits}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Current session audits</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m2:
+        st.markdown(f"""
+        <div class="metric-box">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Biomarkers Screened</div>
+            <div style="font-size: 2.1rem; font-weight: 800; line-height: 1.1; margin-top: 4px;">{total_indicators}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">{total_normal} in reference range</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m3:
+        st.markdown(f"""
+        <div class="metric-box">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Out-of-Range Flags</div>
+            <div style="font-size: 2.1rem; font-weight: 800; line-height: 1.1; margin-top: 4px; color: {'#E11D48' if total_flagged > 0 else 'var(--text-main)'};">{total_flagged}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Potentially High or Low</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m4:
+        st.markdown(f"""
+        <div class="metric-box">
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Needs Review</div>
+            <div style="font-size: 2.1rem; font-weight: 800; line-height: 1.1; margin-top: 4px;">{total_uncertain}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Atypical or non-standard</div>
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("⚡ 1-Click Synthetic Benchmark (For Judges)", type="primary", use_container_width=True):
-            records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
-            add_report_to_history("Metropolis Diagnostic Sample (MET-98421)", "Synthetic Benchmark", records, SYNTHETIC_REPORT, diag)
-            st.rerun()
-
-    # Empty State Notice if No Audits
+    # Empty State Condition
     if total_audits == 0:
         st.markdown("""
-        <div class="empty-state-dark">
-            <div style="font-size: 2.8rem; margin-bottom: 12px;">📑</div>
-            <h3 style="color: #F8FAFC; margin-bottom: 8px;">No Clinical Documents Audited in Active Session</h3>
-            <p style="color: #94A3B8; max-width: 580px; margin: 0 auto 20px auto; font-size: 0.95rem; line-height: 1.5;">
-                Ingest laboratory reports (PDFs, PNG, JPG, WEBP, BMP, TIFF) or click the 1-Click Benchmark above
-                to populate real-time biometric distributions and volumetric anomaly alerts.
+        <div style="text-align: center; background: var(--surface-card); border: 1.5px dashed var(--border-color); border-radius: 12px; padding: 48px 24px; margin: 24px 0;">
+            <div style="font-size: 2.6rem; margin-bottom: 12px;">📑</div>
+            <h3 style="margin-bottom: 8px; font-weight: 700;">No Medical Reports Analyzed in this Session</h3>
+            <p style="color: var(--text-muted); max-width: 580px; margin: 0 auto 20px auto; font-size: 0.95rem; line-height: 1.5;">
+                Ingest laboratory reports (PDFs, PNG, JPG, WEBP, BMP, TIFF) or trigger the 1-Click Benchmark below
+                to populate real-time biometric distributions and clinical indicator surveillance.
             </p>
         </div>
         """, unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🚀 Analyze New Report", use_container_width=True, type="primary"):
+                st.session_state["nav_view"] = "Analyze Report"
+                st.rerun()
+        with col2:
+            if st.button("⚡ Load 1-Click Benchmark", use_container_width=True):
+                records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
+                add_report_to_history("Metropolis Diagnostic Benchmark (MET-98421)", "Synthetic Benchmark", records, SYNTHETIC_REPORT, diag)
+                st.rerun()
         return
 
     st.markdown("---")
 
-    # Mid Row: Biomarker Analytics & Priority Anomalies
-    col_chart, col_alerts = st.columns([6, 6])
-
-    with col_chart:
+    # Mid Section: Status Distribution Chart & Priority Findings
+    c_chart, c_alerts = st.columns([6, 6])
+    with c_chart:
         st.subheader("📊 Biomarker Status Distribution")
         if PLOTLY_AVAILABLE:
+            is_dark = (st.session_state["theme"] == "Dark")
             fig = go.Figure(data=[go.Pie(
                 labels=["In Reference Range", "Potentially High", "Potentially Low", "Review Needed"],
                 values=[
@@ -1518,16 +1350,16 @@ def render_dashboard_view():
                     sum(1 for h in history for r in h["records"] if "Low" in r["Status"]),
                     total_uncertain
                 ],
-                hole=.65,
-                marker=dict(colors=["#10B981", "#F43F5E", "#F59E0B", "#64748B"]),
+                hole=.6,
+                marker=dict(colors=["#10B981", "#E11D48", "#F59E0B", "#64748B"]),
                 textinfo="label+value"
             )])
             fig.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#F8FAFC", family="Inter, sans-serif"),
+                font=dict(color="#F8FAFC" if is_dark else "#0F172A", family="Inter, sans-serif"),
                 showlegend=False,
-                height=260,
+                height=250,
                 margin=dict(t=10, b=10, l=10, r=10)
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -1536,26 +1368,30 @@ def render_dashboard_view():
                 "Classification": ["Normal", "Out-of-Range", "Review Needed"],
                 "Count": [total_normal, total_flagged, total_uncertain]
             })
-            st.bar_chart(dist_df.set_index("Classification"), color="#38BDF8")
+            st.bar_chart(dist_df.set_index("Classification"))
 
-    with col_alerts:
-        st.subheader("🚨 Priority Anomaly Alerts (Latest Document)")
+    with c_alerts:
+        st.subheader("🚨 Priority Out-of-Range Findings")
         current_meta = st.session_state.get("current_meta")
         latest_records = current_meta["records"] if current_meta else []
         flagged_items = [r for r in latest_records if r["Category"] == "flagged"]
 
         if flagged_items:
             for item in flagged_items[:4]:
-                badge_class = "pill-high" if "High" in item["Status"] else "pill-low"
-                arrow = "▲" if "High" in item["Status"] else "▼"
+                is_high = "High" in item["Status"]
+                border_clr = "#E11D48" if is_high else "#F59E0B"
+                badge_bg = "var(--badge-high-bg)" if is_high else "var(--badge-low-bg)"
+                badge_txt = "var(--badge-high-text)" if is_high else "var(--badge-low-text)"
+                arrow = "▲" if is_high else "▼"
+
                 st.markdown(f"""
-                <div style="background: #111827; border-left: 4px solid {'#F43F5E' if 'High' in item['Status'] else '#F59E0B'}; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; border: 1px solid rgba(148, 163, 184, 0.12); border-left-width: 4px;">
+                <div style="background: var(--surface-card); border-left: 4px solid {border_clr}; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--border-color); border-left-width: 4px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="color: #F8FAFC; font-size: 0.95rem;">{item['Test Name']}</strong>
-                        <span class="{badge_class}">{arrow} {item['Status']}</span>
+                        <strong style="font-size: 0.95rem;">{item['Test Name']}</strong>
+                        <span style="background: {badge_bg}; color: {badge_txt}; padding: 3px 8px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">{arrow} {item['Status']}</span>
                     </div>
-                    <div style="font-size: 0.85rem; color: #94A3B8; margin-top: 4px;">
-                        Measured: <b style="color: #F8FAFC;">{item['Measured Value']} {item['Unit']}</b> (Ref: {item['Reference Range']} {item['Unit']})
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                        Measured: <b>{item['Measured Value']} {item['Unit']}</b> (Ref: {item['Reference Range']} {item['Unit']})
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1564,19 +1400,19 @@ def render_dashboard_view():
 
     st.markdown("---")
 
-    # Bottom Row: Active Audit Overview Table & Exports
+    # Latest Audit Overview Table
     latest_meta = st.session_state["current_meta"]
     st.subheader(f"📑 Active Audit: {latest_meta['source_name']}")
     st.caption(f"Audit ID: `{latest_meta['id']}` | Timestamp: `{latest_meta['timestamp']}` | Format: `{latest_meta['source_type']}`")
 
     latest_df = pd.DataFrame(st.session_state["current_records"])
-    disp_df = latest_df[["Test Name", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]].copy()
+    disp_df = latest_df[["Test Name", "Original Label", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]].copy()
     st.dataframe(disp_df, use_container_width=True, hide_index=True)
 
-    # Export Action Row
+    # Action Row
     act1, act2, act3 = st.columns([1, 1, 1])
     with act1:
-        if st.button("➕ Ingest Another Report", use_container_width=True, type="primary"):
+        if st.button("➕ Analyze Another Report", use_container_width=True, type="primary"):
             st.session_state["nav_view"] = "Analyze Report"
             st.rerun()
     with act2:
@@ -1601,20 +1437,22 @@ def render_dashboard_view():
             )
 
 # ---------------------------------------------------------
-# 10. View: Ingest & Analyze
+# 11. View: Analyze Report Workflow
 # ---------------------------------------------------------
 def render_analyze_view():
-    st.subheader("🔬 Multi-Format Report Ingestion & Screening")
-    st.caption("Supports digital/scanned PDFs (with automated OCR fallback), PNG, JPG, JPEG, WEBP, BMP, TIFF, and direct clinical text.")
+    st.subheader("🔬 Clinical Report Ingestion & Analysis Workflow")
+    st.caption("Step-by-step extraction: Upload document → Verify extracted stream → Analyze reference intervals → Review & export.")
 
     st.markdown("""
-    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; color: #FDE68A; font-size: 0.85rem;">
-        ⚠️ <b>Clinical Screening Guardrail:</b> Orca MedScan is an educational and clinical decision-support screening prototype. It does not provide diagnoses or pharmaceutical prescriptions. Always corroborate findings with licensed healthcare providers.
+    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.85rem;">
+        ⚠️ <b>Clinical Screening Guardrail:</b> Orca MedScan is an educational and clinical decision-support screening prototype. It does not provide medical diagnoses or pharmaceutical prescriptions. Always corroborate findings with licensed healthcare providers.
     </div>
     """, unsafe_allow_html=True)
 
+    # STEP 1: Ingestion Zone
+    st.markdown("#### 1. Ingest Laboratory Document")
     tab_upload, tab_paste, tab_sample = st.tabs([
-        "📁 Upload Document / Image",
+        "📁 Drag-and-Drop Upload",
         "📝 Paste Report Text",
         "⚡ 1-Click Benchmark"
     ])
@@ -1638,7 +1476,7 @@ def render_analyze_view():
             file_bytes = io.BytesIO(uploaded_file.read())
 
             if fname_lower.endswith(".pdf"):
-                with st.spinner("Processing PDF (verifying text stream & scanned OCR fallback)..."):
+                with st.spinner("Processing PDF (digital text stream & scanned OCR fallback)..."):
                     success, text_res, method, pages = extract_text_from_pdf(file_bytes)
                     if success:
                         extracted_text = text_res
@@ -1695,20 +1533,27 @@ def render_analyze_view():
 
     st.markdown("---")
 
-    # Editable Pre-Analysis Verification Box
+    # STEP 2: Realistic 3D Document Sheet & Verification Box
+    st.markdown("#### 2. Verify Document Extraction Stream")
     if extracted_text:
-        with st.expander("🔍 Inspect & Verify Extracted Text Before Analysis", expanded=True):
-            st.caption(f"Extraction Pipeline: **{extraction_method}** | Document: `{source_label}`")
-            final_text = st.text_area("Report Text for Analysis:", value=extracted_text, height=180)
+        col_3d_doc, col_edit = st.columns([5, 7])
+        with col_3d_doc:
+            st.caption("Realistic 3D Document Sheet View (Mouse Parallax Tilt):")
+            render_3d_document_sheet(source_label, extracted_text, st.session_state["theme"])
+        with col_edit:
+            st.caption(f"Pipeline: **{extraction_method}** | Document: `{source_label}`")
+            final_text = st.text_area("Inspect & edit extracted stream before clinical analysis:", value=extracted_text, height=210)
     else:
         final_text = ""
+        st.info("Upload a document, paste text, or load the benchmark above to view the 3D document sheet and extracted stream.")
 
-    # Primary Action Button
+    # STEP 3: Analysis Execution
+    st.markdown("#### 3. Execute Reference Verification")
     col_run, col_clear = st.columns([2, 5])
     with col_run:
-        run_analysis = st.button("🔬 Run Clinical Indicator Analysis", type="primary", use_container_width=True)
+        run_analysis = st.button("🔬 Analyze Extracted Biomarkers", type="primary", use_container_width=True)
     with col_clear:
-        if st.button("Clear Buffer", use_container_width=False):
+        if st.button("Clear Input", use_container_width=False):
             st.session_state["raw_text_buffer"] = ""
             st.rerun()
 
@@ -1717,7 +1562,7 @@ def render_analyze_view():
             st.warning("Please provide or upload report text before analyzing.")
             return
 
-        with st.spinner("Executing multi-strategy biomarker extraction & reference verification..."):
+        with st.spinner("Extracting biomarkers, cross-referencing reference intervals, and resolving aliases..."):
             records, diagnostics = parse_report_with_diagnostics(final_text)
 
         if not records:
@@ -1739,12 +1584,14 @@ def render_analyze_view():
         entry = add_report_to_history(source_label, source_kind, records, final_text, diagnostics)
         st.success(f"✅ Successfully identified {len(records)} clinical biomarkers from `{source_label}`!")
 
-    # Display Active Analysis Results
+    # STEP 4: Review Detailed Findings
     if st.session_state.get("current_records"):
         records = st.session_state["current_records"]
         df = pd.DataFrame(records)
 
-        st.markdown("### 📊 Active Report Findings")
+        st.markdown("---")
+        st.markdown("#### 4. Clinical Findings & Reference Interval Assessment")
+
         t_cnt = len(df)
         n_cnt = sum(1 for r in records if r["Category"] == "normal")
         f_cnt = sum(1 for r in records if r["Category"] == "flagged")
@@ -1778,26 +1625,26 @@ def render_analyze_view():
         if search_query.strip():
             filtered_df = filtered_df[filtered_df["Test Name"].str.contains(search_query.strip(), case=False, na=False)]
 
-        st.markdown("##### 📑 Detailed Indicator Assessment")
+        st.markdown("##### Detailed Findings")
         if filtered_df.empty:
             st.info("No biomarkers match the selected filter criteria.")
         else:
             for _, row in filtered_df.iterrows():
                 status_str = row["Status"]
                 if status_str == "Normal":
-                    pill_html = '<span class="pill-normal">● Normal</span>'
+                    badge_html = '<span style="background: var(--badge-norm-bg); color: var(--badge-norm-text); padding: 4px 10px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">● Normal</span>'
                 elif "High" in status_str:
-                    pill_html = '<span class="pill-high">▲ Potentially High</span>'
+                    badge_html = '<span style="background: var(--badge-high-bg); color: var(--badge-high-text); padding: 4px 10px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">▲ Potentially High</span>'
                 elif "Low" in status_str:
-                    pill_html = '<span class="pill-low">▼ Potentially Low</span>'
+                    badge_html = '<span style="background: var(--badge-low-bg); color: var(--badge-low-text); padding: 4px 10px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">▼ Potentially Low</span>'
                 else:
-                    pill_html = '<span class="pill-review">◆ Review Needed</span>'
+                    badge_html = '<span style="background: var(--surface-subtle); color: var(--text-muted); padding: 4px 10px; border-radius: 9999px; font-size: 0.76rem; font-weight: 700;">◆ Review Needed</span>'
 
                 with st.container():
                     r1, r2, r3, r4 = st.columns([3, 2, 2, 2])
                     with r1:
                         st.markdown(f"**{row['Test Name']}**")
-                        st.caption(f"ℹ️ {row['Clinical Context']}")
+                        st.caption(f"Original Label: `{row.get('Original Label', row['Test Name'])}`")
                         if row.get("Plain Explanation"):
                             st.caption(f"💡 *{row['Plain Explanation']}*")
                     with r2:
@@ -1807,11 +1654,11 @@ def render_analyze_view():
                         st.markdown(f"**{row['Reference Range']}** {row['Unit']}")
                         st.caption(f"Range ({row['Range Source']})")
                     with r4:
-                        st.markdown(pill_html, unsafe_allow_html=True)
+                        st.markdown(badge_html, unsafe_allow_html=True)
                         st.caption("Classification")
                     st.divider()
 
-        # Download row
+        # Export Row
         d_col1, d_col2 = st.columns([1, 1])
         with d_col1:
             csv_buffer = io.StringIO()
@@ -1835,15 +1682,15 @@ def render_analyze_view():
                 )
 
 # ---------------------------------------------------------
-# 11. View: Report History
+# 12. View: Report History
 # ---------------------------------------------------------
 def render_history_view():
-    st.subheader("📋 Session Audit Timeline")
-    st.caption("Chronological audit log of all clinical reports evaluated during the current session.")
+    st.subheader("📋 Session Audit History")
+    st.caption("Log of all medical documents audited in the current runtime session. Session storage is temporary.")
 
     history = st.session_state["history"]
     if not history:
-        st.info("No reports have been audited in this session yet. Upload a report in 'Ingest & Analyze' to initiate tracking.")
+        st.info("No reports have been audited in this session yet. Upload a report in 'Analyze Report' to track history.")
         return
 
     summary_rows = []
@@ -1867,7 +1714,7 @@ def render_history_view():
     if selected_report:
         st.markdown(f"**Document**: `{selected_report['source_name']}` | **Audited At**: `{selected_report['timestamp']}`")
         st.dataframe(
-            pd.DataFrame(selected_report["records"])[["Test Name", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]],
+            pd.DataFrame(selected_report["records"])[["Test Name", "Original Label", "Measured Value", "Unit", "Reference Range", "Range Source", "Status"]],
             use_container_width=True,
             hide_index=True
         )
@@ -1880,36 +1727,36 @@ def render_history_view():
         st.rerun()
 
 # ---------------------------------------------------------
-# 12. View: Extraction Telemetry
+# 13. View: Extraction Diagnostics
 # ---------------------------------------------------------
 def render_diagnostics_view():
-    st.subheader("🔍 Extraction Telemetry & OCR Diagnostics")
-    st.caption("Technical deep-dive into digital text extraction, candidate line matching, and OCR character recognition.")
+    st.subheader("🔍 Extraction Diagnostics & Candidate Telemetry")
+    st.caption("Inspect raw OCR output, verified biomarker lines, and candidate lines requiring manual verification.")
 
     diag = st.session_state.get("current_diagnostics")
     current_meta = st.session_state.get("current_meta")
 
     if not diag or not current_meta:
-        st.info("No active report telemetry available. Ingest and analyze a document to view extraction telemetry.")
+        st.info("No active report telemetry available. Ingest and analyze a document to view extraction diagnostics.")
         return
 
     st.markdown(f"#### Audit Telemetry: `{current_meta['id']}` ({current_meta['source_name']})")
-    
+
     c1, c2, c3 = st.columns(3)
     c1.metric("Lines Processed", diag["total_lines"])
     c2.metric("Biomarkers Matched", diag["recognized_count"])
     c3.metric("Candidate Unmatched Lines", len(diag["unrecognized_candidates"]))
 
     st.markdown("---")
-    st.subheader("✅ Mapped Biomarkers")
+    st.subheader("✅ Successfully Recognized Biomarkers")
     st.write(diag["recognized_labels"])
 
     st.markdown("---")
-    st.subheader("⚠️ Unmatched Candidate Lines")
+    st.subheader("⚠️ Unrecognized Candidate Lines")
     st.caption("Lines containing numbers or potential test names that were not mapped to the central registry:")
     if diag["unrecognized_candidates"]:
         for cand in diag["unrecognized_candidates"]:
-            st.markdown(f"<div style='background: #111827; border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; font-family: monospace; font-size: 0.84rem; color: #38BDF8;'>{cand}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background: var(--surface-subtle); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; font-family: monospace; font-size: 0.84rem;'>{cand}</div>", unsafe_allow_html=True)
     else:
         st.success("Zero unmapped candidate lines detected.")
 
@@ -1918,11 +1765,11 @@ def render_diagnostics_view():
         st.text(current_meta["raw_text"])
 
 # ---------------------------------------------------------
-# 13. View: Clinical Safety
+# 14. View: Clinical Safety
 # ---------------------------------------------------------
 def render_about_view():
     st.subheader("ℹ️ Clinical Safety, Reference Intervals & Methodology")
-    
+
     st.markdown("""
     ### 🩺 Purpose & Scope
     **Orca MedScan** is a clinical decision-support and screening prototype developed for **Orcathon 2026** (Healthcare & MedTech track).
@@ -1951,11 +1798,12 @@ def render_about_view():
     """)
 
 # ---------------------------------------------------------
-# 14. Main Application Controller
+# 15. Main Application Controller
 # ---------------------------------------------------------
 def main():
     init_session_state()
-    render_header_and_navigation()
+    apply_theme_css(st.session_state["theme"])
+    render_sidebar()
 
     view = st.session_state["nav_view"]
     if view == "Dashboard":

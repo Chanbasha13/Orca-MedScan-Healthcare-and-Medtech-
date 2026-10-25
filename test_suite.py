@@ -1,6 +1,6 @@
 """
-Orca MedScan — Comprehensive Automated Test Suite (13 Verifications)
-Covers all requirements from Phase 8.
+Orca MedScan — Comprehensive Automated Test Suite (14 Verifications)
+Covers all requirements from Phase 8 + Regression Test for OCR WebP extraction.
 """
 import io
 import os
@@ -137,7 +137,7 @@ def run_all_tests():
     print(f"✓ Passed: All standard clinical abbreviations (HGB, TLC, PLT, FBS, TC, TG, BUN, etc.) successfully resolved.")
 
     # -------------------------------------------------------------
-    # Test 7: Decimal Values, Attached Units, Commas & High/Low Flags
+    # Test 7: Decimal Values, Attached Units & Printed Flags
     # -------------------------------------------------------------
     print("\n[Test 7] Numerical Precision, Attached Units & Printed Flags...")
     tricky_text = """
@@ -150,17 +150,12 @@ def run_all_tests():
     records_tricky = parse_report_text(tricky_text)
     res_dict = {r["Test Name"]: r for r in records_tricky}
 
-    # Verify Hemoglobin 13.5 wasn't truncated to 13
-    assert res_dict["Hemoglobin (Hb)"]["Measured Value"] == 13.5, f"Expected 13.5, got {res_dict['Hemoglobin (Hb)']['Measured Value']}"
-    # Verify Platelets commas parsed cleanly
+    assert res_dict["Hemoglobin (Hb)"]["Measured Value"] == 13.5
     assert res_dict["Platelet Count"]["Measured Value"] == 240000.0
-    # Verify Fasting Sugar high flag
     assert res_dict["Fasting Blood Glucose (Sugar)"]["Measured Value"] == 145.0
     assert res_dict["Fasting Blood Glucose (Sugar)"]["Status"] == "Potentially High"
-    # Verify Creatinine high
     assert res_dict["Serum Creatinine"]["Measured Value"] == 1.4
     assert res_dict["Serum Creatinine"]["Status"] == "Potentially High"
-    # Verify HbA1c
     assert res_dict["Glycated Hemoglobin (HbA1c)"]["Measured Value"] == 6.8
     print("✓ Passed: Decimal values (13.5g/dL), commas (240,000), and flags (H, High) parsed with 100% precision.")
 
@@ -177,12 +172,12 @@ def run_all_tests():
     Serum Creatinine: 0.9 mg/dL (0.6 - 1.2)
     """
     records_norm = parse_report_text(normal_text)
-    assert all(r["Status"] == "Normal" for r in records_norm), "False positive flag on normal report"
+    assert all(r["Status"] == "Normal" for r in records_norm)
     assert len(records_norm) == 6
     print("✓ Passed: All 6 biomarkers correctly evaluated as Normal (zero false alarms).")
 
     # -------------------------------------------------------------
-    # Test 9: Mixed Out-of-Range Report (Both High and Low)
+    # Test 9: Mixed Out-of-Range Report
     # -------------------------------------------------------------
     print("\n[Test 9] Mixed Out-of-Range Report...")
     mixed_text = """
@@ -201,12 +196,12 @@ def run_all_tests():
     print("✓ Passed: High, Low, and Normal statuses clearly distinguished.")
 
     # -------------------------------------------------------------
-    # Test 10: Unknown Labels & Unrelated Non-Medical Text
+    # Test 10: Unknown Labels & Adversarial Non-Medical Text
     # -------------------------------------------------------------
     print("\n[Test 10] Unknown Labels & Adversarial Non-Medical Text...")
     unrelated_text = "Board Meeting Agenda. Financial Quarter 3 summary. Revenue: $4,500,000."
     rec_unrelated, diag_unrelated = parse_report_with_diagnostics(unrelated_text)
-    assert len(rec_unrelated) == 0, f"Expected 0 biomarkers, got {len(rec_unrelated)}"
+    assert len(rec_unrelated) == 0
 
     candidate_text = "Vitamin D3: 18.5 ng/mL (30.0 - 100.0)"
     rec_cand, diag_cand = parse_report_with_diagnostics(candidate_text)
@@ -220,11 +215,11 @@ def run_all_tests():
     print("\n[Test 11] Corrupt and Unsupported Files Handling...")
     corrupt_bytes = io.BytesIO(b"NOT_A_VALID_FILE_CONTENTS_XYZ123")
     success_img, err_img, _ = extract_text_from_image(corrupt_bytes)
-    assert not success_img, "Expected failure on corrupt image"
+    assert not success_img
 
     corrupt_pdf_bytes = io.BytesIO(b"%PDF-1.4 corrupt data dummy")
     success_pdf, err_pdf, _, _ = extract_text_from_pdf(corrupt_pdf_bytes)
-    assert not success_pdf, "Expected failure on corrupt PDF"
+    assert not success_pdf
     print("✓ Passed: Corrupt files handled gracefully without unhandled exceptions.")
 
     # -------------------------------------------------------------
@@ -236,7 +231,7 @@ def run_all_tests():
     print("✓ Passed: Empty inputs safely return empty results.")
 
     # -------------------------------------------------------------
-    # Test 13: CSV & PDF Report Generation
+    # Test 13: Export Generation (CSV & PDF Audit Report)
     # -------------------------------------------------------------
     print("\n[Test 13] Export Generation (CSV & PDF Audit Report)...")
     meta = {
@@ -250,14 +245,38 @@ def run_all_tests():
     assert "Hemoglobin" in csv_str and "Potentially Low" in csv_str
 
     pdf_bytes = generate_pdf_audit_report(meta, sample_records)
-    assert len(pdf_bytes) > 500, "PDF generation failed"
-    assert pdf_bytes.startswith(b"%PDF"), "Generated bytes not a valid PDF"
+    assert len(pdf_bytes) > 500
+    assert pdf_bytes.startswith(b"%PDF")
     print(f"✓ Passed: CSV export and ReportLab PDF audit summary generated successfully ({len(pdf_bytes)} bytes).")
 
+    # -------------------------------------------------------------
+    # Test 14: Regression Test for Realistic 17-Line OCR WebP Output
+    # -------------------------------------------------------------
+    print("\n[Test 14] Regression Test: Realistic 17-line OCR WebP with joined words and acronyms...")
+    failing_webp_sim = """PATIENT REPORT
+Alex Morgan 34Y F
+ID: W-9912 2026-10-25
+---------------------
+FPG: 105 mg/dL (70-99)
+HGB(Hemoglobin) 14.2 g/dL (13.0-17.5)
+TLC: 7.2 x10^3/uL
+PLT(PlateletCount) 210 x10^3/uL
+TotalCholesterol: 218 mg/dL
+HDL-C: 45 mg/dL
+LDL-C: 142 mg/dL
+Trigs: 165 mg/dL
+SerumCreatinine: 0.85 mg/dL
+BloodUrea: 24 mg/dL
+SGPT/ALT: 32 U/L
+TSH: 2.45 uIU/mL"""
+
+    records_reg, diag_reg = parse_report_with_diagnostics(failing_webp_sim)
+    assert len(records_reg) >= 10, f"Expected >= 10 biomarkers recognized in regression test, got {len(records_reg)}"
+    print(f"✓ Passed: Regression test verified ({len(records_reg)} biomarkers recognized from realistic 17-line layout).")
+
     print("\n" + "=" * 60)
-    print("ALL 13 AUTOMATED TESTS PASSED WITH 100% SUCCESS! 🎉")
+    print("ALL 14 AUTOMATED TESTS PASSED WITH 100% SUCCESS! 🎉")
     print("=" * 60)
 
 if __name__ == "__main__":
     run_all_tests()
-
