@@ -10,6 +10,7 @@ Verifies:
 
 import requests
 import json
+import time
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -57,10 +58,13 @@ def test_assistant():
     assert r.status_code in [400, 422], f"Expected 400 or 422 for oversized message, got {r.status_code}"
     print(f"✓ Passed: Oversized message rejected by validation schema with HTTP {r.status_code}")
 
-    # 4. Chat endpoint without API key (Graceful Fallback Mode)
-    print("\n[Assistant Test 4] Unconfigured Safe Guidance Fallback...")
+    # 4. Live Groq Chat Interaction & Medical Guardrails
+    print("\n[Assistant Test 4] Live Groq Chat Interaction with Report Context...")
     sample_context = {
         "source_name": "CMP Specimen Lab Report",
+        "source_type": "Digital PDF",
+        "total_count": 2,
+        "flagged_count": 2,
         "records": [
             {
                 "Test Name": "Fasting Blood Glucose",
@@ -85,8 +89,8 @@ def test_assistant():
             "messages": [
                 {"role": "user", "content": "What do my high glucose and cholesterol levels indicate?"}
             ],
-            "context_report": sample_context,
-            "language": "hi"
+            "report_context": sample_context,
+            "language": "Hindi"
         }
     )
     assert r.status_code == 200, f"Expected 200, got {r.status_code}"
@@ -95,12 +99,17 @@ def test_assistant():
     assert "model" in reply
     assert "disclaimer" in reply
     assert "configured" in reply
-    assert len(reply["disclaimer"]) > 10
-    print(f"✓ Passed: Handled unconfigured state safely with medical disclaimer:\n   -> '{reply['disclaimer'][:75]}...'")
+    assert reply["configured"] is True, "Assistant should be configured with .env GROQ_API_KEY"
+    assert reply["success"] is True, f"Chat failed: {reply}"
+    assert len(reply["reply"]) > 20, "Reply text is too short"
+    assert "gsk_" not in json.dumps(reply), "SECURITY RISK: API key detected in API response!"
+    print(f"✓ Passed: Live Groq response received using model {reply['model']}:")
+    print(f"   -> '{reply['reply'][:85]}...'")
 
     # 5. Indic Language Synchronization
     print("\n[Assistant Test 5] Indic Languages Ingestion Matrix...")
-    for lang in expected_langs:
+    for lang in ["English", "Hindi", "Telugu", "Tamil", "Kannada", "Malayalam", "Bengali"]:
+        time.sleep(0.6)
         r = requests.post(
             f"{BASE_URL}/api/assistant/chat",
             json={
@@ -109,10 +118,18 @@ def test_assistant():
             }
         )
         assert r.status_code == 200, f"Failed for language: {lang}"
-    print(f"✓ Passed: All 7 languages (en, hi, te, ta, kn, ml, bn) accepted by chat orchestrator")
+        assert "gsk_" not in r.text, "SECURITY RISK: API key leaked in language matrix response!"
+    print(f"✓ Passed: All 7 languages accepted and processed with strict key containment")
+
+    # 6. Security & Credential Boundary Audit
+    print("\n[Assistant Test 6] Security Verification: Key Non-Exposure...")
+    st_req = requests.get(f"{BASE_URL}/api/assistant/status")
+    assert "gsk_" not in st_req.text, "SECURITY RISK: API key leaked in status endpoint!"
+    assert "key" not in st_req.json(), "SECURITY RISK: API key field found in status JSON!"
+    print("✓ Passed: Verified GROQ_API_KEY is strictly server-side and never exposed to clients")
 
     print("\n" + "=" * 65)
-    print("ALL GROQ AI ASSISTANT & INDIC LANGUAGE TESTS PASSED (5/5)!")
+    print("ALL GROQ AI ASSISTANT & SECURITY TESTS PASSED (6/6)! 🎉")
     print("=" * 65)
 
 if __name__ == "__main__":

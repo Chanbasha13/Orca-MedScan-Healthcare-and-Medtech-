@@ -16,26 +16,18 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
 
 # -------------------------------------------------------------
-# Groq Cloud Clinical AI Assistant Configuration
+# Groq Cloud Clinical AI Assistant Configuration (.env via python-dotenv)
 # -------------------------------------------------------------
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
-GROQ_TIMEOUT_SECONDS = int(os.environ.get("GROQ_TIMEOUT_SECONDS", "30"))
+try:
+    from dotenv import load_dotenv
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    load_dotenv(dotenv_path=env_path, override=True)
+except ImportError:
+    pass
 
-# Check for .env file if GROQ_API_KEY not already set in environment
-if not GROQ_API_KEY:
-    env_file = os.path.join(os.path.dirname(__file__), ".env")
-    if os.path.exists(env_file):
-        try:
-            with open(env_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("GROQ_API_KEY=") and not line.startswith("#"):
-                        GROQ_API_KEY = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    elif line.startswith("GROQ_MODEL=") and not line.startswith("#"):
-                        GROQ_MODEL = line.split("=", 1)[1].strip().strip('"').strip("'")
-        except Exception:
-            pass
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b").strip()
+GROQ_TIMEOUT_SECONDS = int(os.environ.get("GROQ_TIMEOUT_SECONDS", "30"))
 
 try:
     from groq import Groq
@@ -314,7 +306,7 @@ def assistant_status():
     }
 
 @app.post("/api/assistant/chat")
-async def assistant_chat(req: AssistantChatRequest):
+def assistant_chat(req: AssistantChatRequest):
     if not req.messages:
         raise HTTPException(status_code=400, detail="Conversation message history cannot be empty.")
     
@@ -381,16 +373,47 @@ async def assistant_chat(req: AssistantChatRequest):
             groq_messages.append({"role": m.role, "content": m.content})
 
     try:
+        model_to_use = os.environ.get("GROQ_MODEL", GROQ_MODEL)
+        reply_text = ""
+
+        max_output_tokens = int(os.environ.get("GROQ_MAX_TOKENS", "800"))
+
         if GROQ_SDK_AVAILABLE:
             client = Groq(api_key=current_key, timeout=GROQ_TIMEOUT_SECONDS)
-            model_to_use = os.environ.get("GROQ_MODEL", GROQ_MODEL)
-            completion = client.chat.completions.create(
-                model=model_to_use,
-                messages=groq_messages,
-                temperature=0.2,
-                max_tokens=1024,
-            )
-            reply_text = completion.choices[0].message.content
+            try:
+                completion = client.chat.completions.create(
+                    model=model_to_use,
+                    messages=groq_messages,
+                    temperature=0.2,
+                    max_tokens=max_output_tokens,
+                )
+                reply_text = completion.choices[0].message.content
+            except Exception as model_err:
+                err_str = str(model_err).lower()
+                # If configured model is not available or decommissioned on this account, try available fallbacks
+                if "model_not_found" in err_str or "does not exist" in err_str or "decommissioned" in err_str:
+                    fallback_models = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
+                    fallback_success = False
+                    for fb in fallback_models:
+                        if fb == model_to_use:
+                            continue
+                        try:
+                            completion = client.chat.completions.create(
+                                model=fb,
+                                messages=groq_messages,
+                                temperature=0.2,
+                                max_tokens=max_output_tokens,
+                            )
+                            reply_text = completion.choices[0].message.content
+                            model_to_use = fb
+                            fallback_success = True
+                            break
+                        except Exception:
+                            continue
+                    if not fallback_success:
+                        raise model_err
+                else:
+                    raise model_err
         else:
             import httpx
             headers = {
@@ -398,10 +421,10 @@ async def assistant_chat(req: AssistantChatRequest):
                 "Content-Type": "application/json"
             }
             payload = {
-                "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
+                "model": model_to_use,
                 "messages": groq_messages,
                 "temperature": 0.2,
-                "max_tokens": 1024,
+                "max_tokens": max_output_tokens,
             }
             with httpx.Client(timeout=GROQ_TIMEOUT_SECONDS) as hc:
                 hres = hc.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
@@ -413,7 +436,9 @@ async def assistant_chat(req: AssistantChatRequest):
         return {
             "success": True,
             "configured": True,
+            "model": model_to_use,
             "reply": reply_text,
+            "disclaimer": "Orca MedScan Assistant provides educational screening support and does not substitute for licensed medical consultation.",
             "language": lang,
             "has_report_context": bool(req.report_context)
         }
@@ -423,24 +448,30 @@ async def assistant_chat(req: AssistantChatRequest):
             return {
                 "success": False,
                 "configured": False,
-                "reply": "The provided Groq API Key was rejected (401 Unauthorized). Please check your GROQ_API_KEY environment variable.",
+                "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
+                "reply": "The provided Groq API Key was rejected (401 Unauthorized). Please check your GROQ_API_KEY in the project-root .env file.",
                 "error": "Invalid API Key",
+                "disclaimer": "Orca MedScan Assistant provides educational screening support and does not substitute for licensed medical consultation.",
                 "language": lang
             }
         elif "429" in err_msg or "rate limit" in err_msg.lower():
             return {
                 "success": False,
                 "configured": True,
+                "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
                 "reply": "Groq Cloud rate limit reached. Please wait a few moments before sending another query.",
                 "error": "Rate limit exceeded",
+                "disclaimer": "Orca MedScan Assistant provides educational screening support and does not substitute for licensed medical consultation.",
                 "language": lang
             }
         else:
             return {
                 "success": False,
                 "configured": True,
+                "model": os.environ.get("GROQ_MODEL", GROQ_MODEL),
                 "reply": f"Encountered a communication error with Groq Cloud: {err_msg}.",
                 "error": err_msg,
+                "disclaimer": "Orca MedScan Assistant provides educational screening support and does not substitute for licensed medical consultation.",
                 "language": lang
             }
 
