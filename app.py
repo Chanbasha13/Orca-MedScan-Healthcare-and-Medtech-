@@ -752,20 +752,89 @@ def parse_report_text(raw_text: str):
 # ---------------------------------------------------------
 # 4. Multi-Format Ingestion Engine
 # ---------------------------------------------------------
-def get_tesseract_command():
+def configure_tesseract_environment():
+    """
+    Auto-detects Tesseract binary and configures pytesseract and TESSDATA_PREFIX.
+    Supports system installations (/usr/bin/tesseract, Homebrew) and portable bundle (bin/tesseract).
+    """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 1. Check candidates for Tesseract executable
     candidates = [
+        os.environ.get("TESSERACT_CMD"),
+        os.environ.get("TESSERACT_PATH"),
         shutil.which("tesseract"),
+        os.path.join(base_dir, "bin", "tesseract"),
         "/usr/bin/tesseract",
         "/usr/local/bin/tesseract",
-        "/opt/homebrew/bin/tesseract"
+        "/opt/homebrew/bin/tesseract",
+        "/bin/tesseract",
     ]
+
+    found_cmd = None
     for c in candidates:
         if c and os.path.isfile(c) and os.access(c, os.X_OK):
-            return c
-    return None
+            found_cmd = c
+            break
+
+    if found_cmd:
+        try:
+            import pytesseract
+            pytesseract.pytesseract.tesseract_cmd = found_cmd
+        except ImportError:
+            pass
+
+    # 2. Check candidates for tessdata directory
+    local_tessdata = os.path.join(base_dir, "tessdata")
+    prefix_candidates = [
+        os.environ.get("TESSDATA_PREFIX"),
+        local_tessdata,
+        "/usr/share/tesseract-ocr/5/tessdata",
+        "/usr/share/tesseract-ocr/4.00/tessdata",
+        "/usr/share/tessdata",
+        "/usr/local/share/tessdata",
+        "/opt/homebrew/share/tessdata",
+    ]
+
+    for p in prefix_candidates:
+        if p and os.path.isdir(p) and os.path.isfile(os.path.join(p, "eng.traineddata")):
+            os.environ["TESSDATA_PREFIX"] = p
+            break
+
+    return found_cmd
+
+def get_tesseract_command():
+    return configure_tesseract_environment()
 
 def is_tesseract_available() -> bool:
     return get_tesseract_command() is not None
+
+def get_tesseract_diagnostics() -> dict:
+    cmd = get_tesseract_command()
+    available = cmd is not None
+    version = "Unavailable"
+    languages = []
+
+    if available:
+        try:
+            import pytesseract
+            pytesseract.pytesseract.tesseract_cmd = cmd
+            version = str(pytesseract.get_tesseract_version())
+            languages = pytesseract.get_languages()
+        except Exception:
+            try:
+                res = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=5)
+                version = res.stdout.splitlines()[0] if res.stdout else "Available (CLI)"
+            except Exception as e:
+                version = f"Available ({str(e)})"
+
+    return {
+        "available": available,
+        "binary_path": cmd if cmd else "None (not found in PATH, /usr/bin, or bin/tesseract)",
+        "version": version,
+        "languages": languages if languages else (["eng"] if available else []),
+        "tessdata_prefix": os.environ.get("TESSDATA_PREFIX", "System Default")
+    }
 
 def preprocess_image_for_ocr(pil_img: Image.Image) -> Image.Image:
     try:

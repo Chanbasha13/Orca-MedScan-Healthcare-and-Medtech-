@@ -42,6 +42,8 @@ from app import (
     extract_text_from_pdf,
     extract_text_from_image,
     is_tesseract_available,
+    get_tesseract_command,
+    get_tesseract_diagnostics,
     generate_pdf_audit_report,
     SYNTHETIC_REPORT,
     HEIF_AVAILABLE,
@@ -75,6 +77,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def startup_diagnostics():
+    tess_diag = get_tesseract_diagnostics()
+    status_str = "AVAILABLE" if tess_diag["available"] else "NOT DETECTED (OCR OFFLINE)"
+    print("=" * 65)
+    print("ORCA MEDSCAN SYSTEM STARTUP DIAGNOSTICS:")
+    print(f"  • Tesseract OCR Status : {status_str}")
+    print(f"  • Binary Location      : {tess_diag['binary_path']}")
+    print(f"  • Engine Version       : {tess_diag.get('version', 'Unknown')}")
+    print(f"  • Installed Languages  : {tess_diag.get('languages', [])}")
+    print(f"  • TESSDATA_PREFIX      : {tess_diag.get('tessdata_prefix', 'System Default')}")
+    print(f"  • Groq Clinical AI     : {'CONFIGURED' if bool(os.environ.get('GROQ_API_KEY', GROQ_API_KEY)) else 'UNCONFIGURED'}")
+    print(f"  • Frontend Assets      : {'MOUNTED' if os.path.isdir(FRONTEND_ASSETS) else 'MISSING'}")
+    print("=" * 65)
 
 # -------------------------------------------------------------
 # Data Models
@@ -263,10 +280,7 @@ def system_status():
             pass
 
     return {
-        "tesseract": {
-            "available": is_tesseract_available(),
-            "binary_path": "/opt/homebrew/bin/tesseract" if os.path.exists("/opt/homebrew/bin/tesseract") else "system PATH"
-        },
+        "tesseract": get_tesseract_diagnostics(),
         "decoders": {
             "heif_available": HEIF_AVAILABLE,
             "reportlab_available": REPORTLAB_AVAILABLE,
@@ -278,6 +292,38 @@ def system_status():
             "iterations": 100000,
             "salt_entropy": "256-bit CSPRNG",
             "vault_path": AUTH_FILE
+        }
+    }
+
+@app.get("/api/system/ocr-diagnostics")
+def ocr_diagnostics():
+    diag = get_tesseract_diagnostics()
+    self_test = {"passed": False, "extracted_text": "", "error": None}
+    
+    if diag["available"]:
+        try:
+            import io
+            from PIL import Image, ImageDraw
+            img = Image.new("RGB", (260, 60), color="white")
+            draw = ImageDraw.Draw(img)
+            draw.text((10, 20), "ORCA OCR OK", fill="black")
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            ok, text, _ = extract_text_from_image(buf)
+            self_test["passed"] = ok and "ORCA" in text
+            self_test["extracted_text"] = text.strip() if text else ""
+        except Exception as e:
+            self_test["error"] = str(e)
+            
+    return {
+        "diagnostics": diag,
+        "self_test": self_test,
+        "environment": {
+            "platform": os.name,
+            "python_executable": os.sys.executable,
+            "is_render": bool(os.environ.get("RENDER")),
+            "tessdata_prefix": os.environ.get("TESSDATA_PREFIX", "")
         }
     }
 
