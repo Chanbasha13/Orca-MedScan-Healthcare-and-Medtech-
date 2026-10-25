@@ -21,6 +21,18 @@ from PIL import Image, ImageOps
 import streamlit as st
 import streamlit.components.v1 as components
 
+# Cryptographic Enclave Authentication
+from auth import (
+    authenticate_user,
+    register_user,
+    init_auth_vault,
+    validate_email,
+    validate_password_strength,
+    DEFAULT_EVALUATOR_EMAIL,
+    DEFAULT_EVALUATOR_PASS,
+    AUTH_FILE
+)
+
 # Register HEIF opener if available
 try:
     import pillow_heif
@@ -1064,6 +1076,7 @@ def render_3d_document_sheet(doc_name: str, snippet_text: str, theme: str):
 # 7. Session State Management
 # ---------------------------------------------------------
 def init_session_state():
+    init_auth_vault()
     if "history" not in st.session_state:
         st.session_state["history"] = []
     if "current_records" not in st.session_state:
@@ -1078,6 +1091,14 @@ def init_session_state():
         st.session_state["nav_view"] = "Dashboard"
     if "theme" not in st.session_state:
         st.session_state["theme"] = "Light"
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+    if "user" not in st.session_state:
+        st.session_state["user"] = None
+    if "page" not in st.session_state:
+        st.session_state["page"] = "landing"
+    if "auth_flash" not in st.session_state:
+        st.session_state["auth_flash"] = None
 
 def add_report_to_history(source_name: str, source_type: str, records: list, raw_text: str, diagnostics: dict):
     rep_id = f"AUDIT-{len(st.session_state['history']) + 1:03d}"
@@ -1111,30 +1132,94 @@ def apply_theme_css(theme: str):
                 --bg-base: #0B1120;
                 --surface-card: #111827;
                 --surface-subtle: #1E293B;
-                --border-color: #1F2937;
+                --border-color: #334155;
+                --border-focus: #14B8A6;
                 --text-main: #F8FAFC;
                 --text-muted: #94A3B8;
-                --accent-primary: #0D9488;
-                --badge-norm-bg: rgba(16, 185, 129, 0.15);
+                --accent-primary: #14B8A6;
+                --accent-hover: #2DD4BF;
+                --accent-subtle: rgba(20, 184, 166, 0.15);
+                --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+                --badge-norm-bg: rgba(16, 185, 129, 0.16);
                 --badge-norm-text: #34D399;
-                --badge-high-bg: rgba(244, 63, 94, 0.15);
+                --badge-norm-border: rgba(16, 185, 129, 0.4);
+                --badge-high-bg: rgba(244, 63, 94, 0.16);
                 --badge-high-text: #FB7185;
-                --badge-low-bg: rgba(245, 158, 11, 0.15);
+                --badge-high-border: rgba(244, 63, 94, 0.4);
+                --badge-low-bg: rgba(245, 158, 11, 0.16);
                 --badge-low-text: #FBBF24;
+                --badge-low-border: rgba(245, 158, 11, 0.4);
+                --badge-rev-bg: rgba(148, 163, 184, 0.16);
+                --badge-rev-text: #CBD5E1;
+                --badge-rev-border: rgba(148, 163, 184, 0.4);
             }
-            .stApp { background-color: var(--bg-base); color: var(--text-main); }
+            .stApp {
+                background-color: var(--bg-base) !important;
+                color: var(--text-main) !important;
+            }
+            /* High-contrast Streamlit Top Header & Toolbar */
+            header[data-testid="stHeader"] {
+                background-color: var(--bg-base) !important;
+                color: var(--text-main) !important;
+                border-bottom: 1px solid var(--border-color) !important;
+                z-index: 999990 !important;
+            }
+            header[data-testid="stHeader"] * {
+                color: var(--text-main) !important;
+            }
+            header[data-testid="stHeader"] svg {
+                fill: var(--text-main) !important;
+            }
+            div[data-testid="stToolbar"] {
+                right: 1.25rem !important;
+                top: 0.45rem !important;
+                z-index: 999999 !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+            div[data-testid="stToolbar"] button,
+            header[data-testid="stHeader"] button {
+                background-color: var(--surface-subtle) !important;
+                color: var(--text-main) !important;
+                border: 1px solid var(--border-color) !important;
+                border-radius: 6px !important;
+            }
+            .main .block-container {
+                padding-top: 4.75rem !important;
+                padding-bottom: 3.5rem !important;
+                max-width: 1280px !important;
+            }
+            section[data-testid="stSidebar"] {
+                background-color: var(--surface-card) !important;
+                border-right: 1px solid var(--border-color) !important;
+            }
+            section[data-testid="stSidebar"] * {
+                color: var(--text-main);
+            }
             .metric-box {
                 background: var(--surface-card);
                 border: 1px solid var(--border-color);
                 border-radius: 10px;
                 padding: 18px 20px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+                box-shadow: var(--card-shadow);
                 margin-bottom: 12px;
             }
-            .stTextInput>div>div, .stSelectbox>div>div, .stTextArea>div>div {
+            .stTextInput input, .stTextArea textarea {
                 background-color: var(--surface-card) !important;
                 color: var(--text-main) !important;
                 border-color: var(--border-color) !important;
+            }
+            div[data-baseweb="select"] > div {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
+                border-color: var(--border-color) !important;
+            }
+            div[data-baseweb="popover"], div[data-baseweb="menu"] {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
             }
         </style>
         """
@@ -1146,17 +1231,72 @@ def apply_theme_css(theme: str):
                 --surface-card: #FFFFFF;
                 --surface-subtle: #F1F5F9;
                 --border-color: #E2E8F0;
+                --border-focus: #0D9488;
                 --text-main: #0F172A;
                 --text-muted: #475569;
                 --accent-primary: #0F766E;
+                --accent-hover: #115E59;
+                --accent-subtle: rgba(15, 118, 110, 0.1);
+                --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
                 --badge-norm-bg: #ECFDF5;
                 --badge-norm-text: #065F46;
+                --badge-norm-border: #A7F3D0;
                 --badge-high-bg: #FFF1F2;
                 --badge-high-text: #9F1239;
+                --badge-high-border: #FECDD3;
                 --badge-low-bg: #FFFBEB;
                 --badge-low-text: #92400E;
+                --badge-low-border: #FDE68A;
+                --badge-rev-bg: #F1F5F9;
+                --badge-rev-text: #475569;
+                --badge-rev-border: #CBD5E1;
             }
-            .stApp { background-color: var(--bg-base); color: var(--text-main); }
+            .stApp {
+                background-color: var(--bg-base);
+                color: var(--text-main);
+            }
+            /* High-contrast Streamlit Top Header & Toolbar */
+            header[data-testid="stHeader"] {
+                background-color: var(--bg-base) !important;
+                color: var(--text-main) !important;
+                border-bottom: 1px solid var(--border-color) !important;
+                z-index: 999990 !important;
+            }
+            header[data-testid="stHeader"] * {
+                color: var(--text-main) !important;
+            }
+            header[data-testid="stHeader"] svg {
+                fill: var(--text-main) !important;
+            }
+            div[data-testid="stToolbar"] {
+                right: 1.25rem !important;
+                top: 0.45rem !important;
+                z-index: 999999 !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+            div[data-testid="stToolbar"] button,
+            header[data-testid="stHeader"] button {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
+                border: 1px solid var(--border-color) !important;
+                border-radius: 6px !important;
+            }
+            .main .block-container {
+                padding-top: 4.75rem !important;
+                padding-bottom: 3.5rem !important;
+                max-width: 1280px !important;
+            }
+            section[data-testid="stSidebar"] {
+                background-color: var(--surface-card) !important;
+                border-right: 1px solid var(--border-color) !important;
+            }
+            section[data-testid="stSidebar"] * {
+                color: var(--text-main);
+            }
             .metric-box {
                 background: var(--surface-card);
                 border: 1px solid var(--border-color);
@@ -1165,10 +1305,19 @@ def apply_theme_css(theme: str):
                 box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
                 margin-bottom: 12px;
             }
-            .stTextInput>div>div, .stSelectbox>div>div, .stTextArea>div>div {
+            .stTextInput input, .stTextArea textarea {
                 background-color: var(--surface-card) !important;
                 color: var(--text-main) !important;
                 border-color: var(--border-color) !important;
+            }
+            div[data-baseweb="select"] > div {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
+                border-color: var(--border-color) !important;
+            }
+            div[data-baseweb="popover"], div[data-baseweb="menu"] {
+                background-color: var(--surface-card) !important;
+                color: var(--text-main) !important;
             }
         </style>
         """
@@ -1180,22 +1329,37 @@ def apply_theme_css(theme: str):
 def render_sidebar():
     with st.sidebar:
         st.markdown("""
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
             <span style="font-size: 1.8rem;">🩺</span>
             <div>
                 <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em;">ORCA MEDSCAN</h3>
-                <span style="font-size: 0.72rem; color: #64748B; font-weight: 600; text-transform: uppercase;">Clinical Diagnostics</span>
+                <span style="font-size: 0.72rem; color: #0D9488; font-weight: 700; text-transform: uppercase;">Clinical Intelligence Enclave</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("---")
+        user = st.session_state.get("user") or {"email": DEFAULT_EVALUATOR_EMAIL, "role": "Lead Clinical Evaluator"}
+        user_email = user.get("email", DEFAULT_EVALUATOR_EMAIL)
+        user_role = user.get("role", "Clinical Practitioner")
+
+        st.markdown(f"""
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Enclave Identity</div>
+            <div style="font-weight: 700; font-size: 0.84rem; color: var(--text-main); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                👤 {user_email}
+            </div>
+            <div style="margin-top: 4px;">
+                <span style="background: var(--accent-subtle); color: var(--accent-primary); padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700;">{user_role}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         nav_options = [
             "📊 Dashboard",
             "🔬 Analyze Report",
             "📋 Report History",
             "🔍 Extraction Diagnostics",
+            "⚙️ Settings & Enclave",
             "ℹ️ Clinical Safety / About"
         ]
         nav_keys = {
@@ -1203,10 +1367,13 @@ def render_sidebar():
             "🔬 Analyze Report": "Analyze Report",
             "📋 Report History": "Report History",
             "🔍 Extraction Diagnostics": "Extraction Diagnostics",
+            "⚙️ Settings & Enclave": "Settings",
             "ℹ️ Clinical Safety / About": "About & Safety"
         }
 
-        current_nav_key = st.session_state["nav_view"]
+        current_nav_key = st.session_state.get("nav_view", "Dashboard")
+        if current_nav_key not in nav_keys.values():
+            current_nav_key = "Dashboard"
         current_idx = list(nav_keys.values()).index(current_nav_key)
 
         selected_nav = st.radio(
@@ -1235,7 +1402,7 @@ def render_sidebar():
         st.caption(f"OCR Engine: **{'Active (Local)' if is_tesseract_available() else 'Not Installed'}**")
 
         st.markdown("---")
-        # Theme Toggle at Bottom of Sidebar
+        # Theme Toggle
         st.markdown("<div style='font-size: 0.8rem; font-weight: 600; margin-bottom: 6px;'>INTERFACE THEME</div>", unsafe_allow_html=True)
         theme_choice = st.radio(
             "Interface Theme",
@@ -1246,6 +1413,13 @@ def render_sidebar():
         )
         if theme_choice != st.session_state["theme"]:
             st.session_state["theme"] = theme_choice
+            st.rerun()
+
+        st.markdown("---")
+        if st.button("🚪 Log Out of Enclave", use_container_width=True):
+            st.session_state["authenticated"] = False
+            st.session_state["user"] = None
+            st.session_state["page"] = "landing"
             st.rerun()
 
 # ---------------------------------------------------------
@@ -1798,14 +1972,421 @@ def render_about_view():
     """)
 
 # ---------------------------------------------------------
-# 15. Main Application Controller
+# 15. View: System Settings & Enclave Vault
+# ---------------------------------------------------------
+def render_settings_view():
+    st.markdown("""
+    <div style="margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 1.8rem; font-weight: 800;">⚙️ System Settings & Enclave Vault</h2>
+        <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Inspect cryptographic vault integrity, OCR engine telemetry, and manage session cache.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    tab_vault, tab_engine, tab_session = st.tabs([
+        "🔒 Cryptographic Enclave & Vault",
+        "🔍 Optical Engine & Formats",
+        "🗑️ Session Data Management"
+    ])
+
+    with tab_vault:
+        st.subheader("Practitioner Enclave Security Parameters")
+        user = st.session_state.get("user") or {}
+        st.markdown(f"""
+        - **Active Identity**: `{user.get('email', DEFAULT_EVALUATOR_EMAIL)}`
+        - **Practitioner Role**: `{user.get('role', 'Clinical Evaluator')}`
+        - **Session Login Timestamp**: `{user.get('last_login', 'Active Enclave Session')}`
+        """)
+
+        st.markdown("---")
+        st.subheader("Cryptographic Vault Specification")
+
+        vault_user_count = 1
+        if os.path.exists(AUTH_FILE):
+            try:
+                import json
+                with open(AUTH_FILE, "r", encoding="utf-8") as f:
+                    vdata = json.load(f)
+                    vault_user_count = len(vdata.get("users", {}))
+            except Exception:
+                pass
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Registered Practitioners", vault_user_count)
+        c2.metric("Hash Algorithm", "PBKDF2-SHA256")
+        c3.metric("Key Iterations", "100,000")
+        c4.metric("Salt Entropy", "256-bit CSPRNG")
+
+        st.info("💡 **Clinical Enclave Guarantee**: Password hashes and salts are written strictly to host disk (`data/.auth_vault.json`). No external authentication servers or cloud services are contacted.")
+
+    with tab_engine:
+        st.subheader("Ingestion Engine & Format Support Matrix")
+
+        tess_ok = is_tesseract_available()
+        e1, e2, e3, e4 = st.columns(4)
+        e1.metric("Tesseract OCR", "Active (Local)" if tess_ok else "Not Found")
+        e2.metric("HEIF / HEIC Decoder", "Active" if HEIF_AVAILABLE else "Disabled")
+        e3.metric("ReportLab Generator", "Active" if REPORTLAB_AVAILABLE else "Disabled")
+        e4.metric("Plotly Analytics", "Active" if PLOTLY_AVAILABLE else "Disabled")
+
+        st.markdown("---")
+        st.markdown("##### Verified Supported Formats:")
+        st.dataframe(pd.DataFrame([
+            {"Format": "PDF (Digital)", "Pipeline": "pdfplumber text stream extraction", "Status": "Verified"},
+            {"Format": "PDF (Scanned)", "Pipeline": "Automatic OCR fallback render", "Status": "Verified"},
+            {"Format": "PNG / JPG / JPEG", "Pipeline": "Pillow + Tesseract OCR", "Status": "Verified"},
+            {"Format": "WEBP", "Pipeline": "Pillow + Tesseract OCR (with typo repair)", "Status": "Verified"},
+            {"Format": "BMP / TIFF", "Pipeline": "Pillow + Tesseract OCR", "Status": "Verified"},
+            {"Format": "HEIC / HEIF", "Pipeline": "pillow-heif registration", "Status": "Verified" if HEIF_AVAILABLE else "Optional"}
+        ]), use_container_width=True, hide_index=True)
+
+    with tab_session:
+        st.subheader("Session Memory & Cache Management")
+        st.caption(f"Currently active reports in session cache: **{len(st.session_state['history'])}**")
+
+        if st.button("🗑️ Reset All Session Audits & Buffers", type="primary"):
+            st.session_state["history"] = []
+            st.session_state["current_records"] = []
+            st.session_state["current_meta"] = None
+            st.session_state["current_diagnostics"] = None
+            st.session_state["raw_text_buffer"] = ""
+            st.success("Session memory cleared successfully.")
+            st.rerun()
+
+# ---------------------------------------------------------
+# 16. View: Public Clinical Landing Page
+# ---------------------------------------------------------
+def render_landing_page():
+    # Top navigation bar
+    col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([4, 2, 2, 2, 2])
+    with col_nav1:
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.6rem;">🩺</span>
+            <div>
+                <span style="font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em;">ORCA MEDSCAN</span>
+                <span style="font-size: 0.7rem; background: var(--badge-norm-bg); color: var(--badge-norm-text); border: 1px solid var(--badge-norm-border); padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: 700;">ENCLAVE</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_nav2:
+        pass
+    with col_nav3:
+        theme_icon = "☀️ Light" if st.session_state["theme"] == "Dark" else "🌙 Dark"
+        if st.button(f"Theme: {theme_icon}", use_container_width=True):
+            st.session_state["theme"] = "Light" if st.session_state["theme"] == "Dark" else "Dark"
+            st.rerun()
+    with col_nav4:
+        if st.button("Sign In", use_container_width=True):
+            st.session_state["page"] = "login"
+            st.rerun()
+    with col_nav5:
+        if st.button("Get Started", use_container_width=True, type="primary"):
+            st.session_state["page"] = "signup"
+            st.rerun()
+
+    st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+
+    # Hero Banner
+    st.markdown("""
+    <div style="text-align: center; max-width: 900px; margin: 0 auto 32px auto;">
+        <div style="display: inline-block; background: var(--surface-subtle); border: 1px solid var(--border-color); border-radius: 9999px; padding: 4px 14px; font-size: 0.78rem; font-weight: 700; color: var(--accent-primary); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px;">
+            ORCATHON 2026 • HEALTHCARE & MEDTECH TRACK
+        </div>
+        <h1 style="font-size: 2.75rem; font-weight: 850; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 16px;">
+            Deterministic Laboratory Report Screening & Clinical Intelligence
+        </h1>
+        <p style="font-size: 1.12rem; color: var(--text-muted); line-height: 1.6; margin: 0 auto 28px auto; max-width: 760px;">
+            A local privacy-preserving enclave for automated medical report extraction, resilient optical character recognition (OCR), and dynamic reference interval verification. Zero cloud API exposure — 100% on-premise execution.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Primary Action Buttons
+    c_btn1, c_btn2, c_btn3 = st.columns([1.2, 1.4, 1.2])
+    with c_btn1:
+        if st.button("🚀 Launch Clinical Enclave", use_container_width=True, type="primary"):
+            st.session_state["page"] = "login"
+            st.rerun()
+    with c_btn2:
+        if st.button("⚡ 1-Click Evaluator Demo (Benchmark)", use_container_width=True):
+            init_auth_vault()
+            success, msg, udata = authenticate_user(DEFAULT_EVALUATOR_EMAIL, DEFAULT_EVALUATOR_PASS)
+            if success:
+                st.session_state["authenticated"] = True
+                st.session_state["user"] = udata
+                st.session_state["page"] = "app"
+                records, diag = parse_report_with_diagnostics(SYNTHETIC_REPORT)
+                add_report_to_history("Metropolis Diagnostic Benchmark (MET-98421)", "Synthetic Benchmark", records, SYNTHETIC_REPORT, diag)
+                st.session_state["nav_view"] = "Dashboard"
+                st.rerun()
+    with c_btn3:
+        if st.button("🛡️ Register Practitioner", use_container_width=True):
+            st.session_state["page"] = "signup"
+            st.rerun()
+
+    st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+
+    # Format Badges Strip
+    st.markdown("""
+    <div style="background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-bottom: 36px; box-shadow: var(--card-shadow);">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 8px;">VERIFIED FORMAT INGESTION:</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">📄 Digital PDF</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">📑 Scanned PDF (OCR)</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">🖼️ PNG</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">📷 JPG / JPEG</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">🌐 WEBP</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">🔲 BMP</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">🎞️ TIFF</span>
+        <span style="background: var(--surface-subtle); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">📱 HEIC/HEIF</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 3D Pipeline Showcase Section
+    st.markdown("""
+    <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 1.45rem; font-weight: 800; text-align: center; margin-bottom: 8px;">Deterministic 5-Stage Clinical Pipeline</h3>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.92rem; max-width: 650px; margin: 0 auto 24px auto;">
+            From raw lab specimen document to validated clinical report telemetry and dual-format compliance exports.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    p1, p2, p3, p4, p5 = st.columns(5)
+    with p1:
+        st.markdown("""
+        <div class="metric-box" style="height: 100%;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-primary); text-transform: uppercase;">STEP 01</div>
+            <div style="font-weight: 700; font-size: 0.96rem; margin: 4px 0;">Multi-Format Ingestion</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">Vector text stream extraction via pdfplumber with automatic fallthrough to Tesseract OCR.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with p2:
+        st.markdown("""
+        <div class="metric-box" style="height: 100%;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-primary); text-transform: uppercase;">STEP 02</div>
+            <div style="font-weight: 700; font-size: 0.96rem; margin: 4px 0;">OCR Typo Repair</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">Pre-sanitizes OCR character confusions (IO5 → 105), acronym misreads, and fused punctuation.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with p3:
+        st.markdown("""
+        <div class="metric-box" style="height: 100%;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-primary); text-transform: uppercase;">STEP 03</div>
+            <div style="font-weight: 700; font-size: 0.96rem; margin: 4px 0;">Biomarker Mapping</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">Maps 50+ laboratory aliases and abbreviations (Hb, TLC, PLT, FBS, FPG, TC, TG, Cr, ALT, etc.).</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with p4:
+        st.markdown("""
+        <div class="metric-box" style="height: 100%;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-primary); text-transform: uppercase;">STEP 04</div>
+            <div style="font-weight: 700; font-size: 0.96rem; margin: 4px 0;">Reference Interval Logic</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">Prioritizes assay-specific printed laboratory intervals; falls back to standard adult clinical norms.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with p5:
+        st.markdown("""
+        <div class="metric-box" style="height: 100%;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-primary); text-transform: uppercase;">STEP 05</div>
+            <div style="font-weight: 700; font-size: 0.96rem; margin: 4px 0;">Dual Audit Export</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">Instant structured CSV exports and signed ReportLab clinical PDF summaries with audit telemetry.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+
+    # Core Architectural Pillars
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("""
+        <div class="metric-box">
+            <div style="font-size: 1.8rem; margin-bottom: 8px;">🔒</div>
+            <h4 style="margin: 0 0 8px 0; font-weight: 800;">Zero-Cloud Security Boundary</h4>
+            <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                All parsing, OCR, and reference interval matching execute strictly in host RAM. No external LLMs, no remote third-party API keys, and zero patient health information (PHI) leaks.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown("""
+        <div class="metric-box">
+            <div style="font-size: 1.8rem; margin-bottom: 8px;">🎯</div>
+            <h4 style="margin: 0 0 8px 0; font-weight: 800;">Non-Speculative Clinical Guardrail</h4>
+            <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                Strict categorization into Normal, Potentially High, Potentially Low, or Review Needed. Prevents hallucinated medical diagnoses and adheres to clinical decision-support standards.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        st.markdown("""
+        <div class="metric-box">
+            <div style="font-size: 1.8rem; margin-bottom: 8px;">📊</div>
+            <h4 style="margin: 0 0 8px 0; font-weight: 800;">Extraction Telemetry & Diagnostics</h4>
+            <p style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin: 0;">
+                Complete clinical transparency: monitors total scanned lines, matched biomarkers, and non-conforming candidate lines to allow clinicians to inspect and verify every data point.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Clinical Safety Expander
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+    with st.expander("ℹ️ Clinical Safety Protocol, Medical Disclaimer & Hackathon Enclave Specification", expanded=False):
+        st.markdown("""
+        **Clinical Decision Support Scope**: Orca MedScan is developed for Orcathon 2026 (Healthcare & MedTech track). It is designed to assist clinical practitioners and patients in rapidly screening structured laboratory reports. It is not an autonomous diagnostic instrument and does not prescribe medication or clinical treatments.
+
+        **Cryptographic Storage Standard**: User credentials are protected using NIST-recommended PBKDF2-HMAC-SHA256 with 100,000 iterations and unique 256-bit cryptographically secure salts stored in `data/.auth_vault.json`.
+        """)
+
+# ---------------------------------------------------------
+# 17. View: Practitioner Login
+# ---------------------------------------------------------
+def render_login_page():
+    c_back, c_theme = st.columns([8, 2])
+    with c_back:
+        if st.button("← Back to Public Overview"):
+            st.session_state["page"] = "landing"
+            st.rerun()
+    with c_theme:
+        theme_icon = "☀️ Light" if st.session_state["theme"] == "Dark" else "🌙 Dark"
+        if st.button(f"Theme: {theme_icon}", use_container_width=True):
+            st.session_state["theme"] = "Light" if st.session_state["theme"] == "Dark" else "Dark"
+            st.rerun()
+
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+    _, col_card, _ = st.columns([1, 2, 1])
+    with col_card:
+        if st.session_state.get("auth_flash"):
+            st.success(st.session_state["auth_flash"])
+            st.session_state["auth_flash"] = None
+
+        st.markdown("""
+        <div style="background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px 24px 16px 24px; box-shadow: var(--card-shadow); margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <span style="font-size: 1.8rem;">🩺</span>
+                <div>
+                    <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800;">Clinical Enclave Sign In</h2>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">Access authenticated laboratory diagnostic records</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("login_form"):
+            email_in = st.text_input("Practitioner Email", value=DEFAULT_EVALUATOR_EMAIL, placeholder="doctor@hospital.org")
+            pass_in = st.text_input("Password", value=DEFAULT_EVALUATOR_PASS, type="password", placeholder="Enter your password")
+            submit_btn = st.form_submit_button("Sign In to Clinical Enclave", type="primary", use_container_width=True)
+
+            if submit_btn:
+                success, msg, udata = authenticate_user(email_in, pass_in)
+                if success:
+                    st.session_state["authenticated"] = True
+                    st.session_state["user"] = udata
+                    st.session_state["page"] = "app"
+                    st.session_state["nav_view"] = "Dashboard"
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+        st.markdown("<div style='text-align: center; margin: 12px 0; color: var(--text-muted); font-size: 0.82rem;'>— FAST-TRACK HACKATHON EVALUATION —</div>", unsafe_allow_html=True)
+
+        if st.button("⚡ 1-Click Evaluator Login (Hackathon Demo)", use_container_width=True, type="secondary"):
+            init_auth_vault()
+            success, msg, udata = authenticate_user(DEFAULT_EVALUATOR_EMAIL, DEFAULT_EVALUATOR_PASS)
+            if success:
+                st.session_state["authenticated"] = True
+                st.session_state["user"] = udata
+                st.session_state["page"] = "app"
+                st.session_state["nav_view"] = "Dashboard"
+                st.rerun()
+
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+        col_reg, col_help = st.columns(2)
+        with col_reg:
+            if st.button("New Practitioner? Register", use_container_width=True):
+                st.session_state["page"] = "signup"
+                st.rerun()
+        with col_help:
+            st.caption(f"Default Evaluator Account:\n`{DEFAULT_EVALUATOR_EMAIL}`")
+
+        st.markdown("""
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px; margin-top: 18px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+            🔒 <b>Local Enclave Vault</b>: Evaluator credentials utilize salted PBKDF2-HMAC-SHA256 (100,000 rounds) stored within host enclave (<code>data/.auth_vault.json</code>). Zero cloud transmissions.
+        </div>
+        """, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# 18. View: Practitioner Registration
+# ---------------------------------------------------------
+def render_signup_page():
+    c_back, c_theme = st.columns([8, 2])
+    with c_back:
+        if st.button("← Back to Public Overview"):
+            st.session_state["page"] = "landing"
+            st.rerun()
+    with c_theme:
+        theme_icon = "☀️ Light" if st.session_state["theme"] == "Dark" else "🌙 Dark"
+        if st.button(f"Theme: {theme_icon}", use_container_width=True):
+            st.session_state["theme"] = "Light" if st.session_state["theme"] == "Dark" else "Dark"
+            st.rerun()
+
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+    _, col_card, _ = st.columns([1, 2, 1])
+    with col_card:
+        st.markdown("""
+        <div style="background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px 24px 16px 24px; box-shadow: var(--card-shadow); margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <span style="font-size: 1.8rem;">🩺</span>
+                <div>
+                    <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800;">Register Practitioner Account</h2>
+                    <div style="color: var(--text-muted); font-size: 0.85rem;">Create a local cryptographic enclave identity</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("signup_form"):
+            email_in = st.text_input("Practitioner Email", placeholder="doctor@clinic.org")
+            pass1 = st.text_input("Password", type="password", placeholder="At least 8 characters with letter & number")
+            pass2 = st.text_input("Confirm Password", type="password", placeholder="Repeat password")
+            submit_btn = st.form_submit_button("Register Enclave Account", type="primary", use_container_width=True)
+
+            if submit_btn:
+                success, msg = register_user(email_in, pass1, pass2)
+                if success:
+                    st.session_state["auth_flash"] = "Account registered successfully! You may now sign in."
+                    st.session_state["page"] = "login"
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+        if st.button("Already have an account? Sign In", use_container_width=True):
+            st.session_state["page"] = "login"
+            st.rerun()
+
+# ---------------------------------------------------------
+# 19. Main Application Controller
 # ---------------------------------------------------------
 def main():
     init_session_state()
     apply_theme_css(st.session_state["theme"])
+
+    # If unauthenticated, route between Landing, Login, and Signup
+    if not st.session_state.get("authenticated", False):
+        page = st.session_state.get("page", "landing")
+        if page == "login":
+            render_login_page()
+        elif page == "signup":
+            render_signup_page()
+        else:
+            render_landing_page()
+        return
+
+    # Authenticated flow: Render permanent sidebar and protected workspace
     render_sidebar()
 
-    view = st.session_state["nav_view"]
+    view = st.session_state.get("nav_view", "Dashboard")
     if view == "Dashboard":
         render_dashboard_view()
     elif view == "Analyze Report":
@@ -1814,6 +2395,8 @@ def main():
         render_history_view()
     elif view == "Extraction Diagnostics":
         render_diagnostics_view()
+    elif view == "Settings":
+        render_settings_view()
     elif view == "About & Safety":
         render_about_view()
 

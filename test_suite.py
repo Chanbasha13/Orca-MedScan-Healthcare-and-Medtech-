@@ -274,8 +274,52 @@ TSH: 2.45 uIU/mL"""
     assert len(records_reg) >= 10, f"Expected >= 10 biomarkers recognized in regression test, got {len(records_reg)}"
     print(f"✓ Passed: Regression test verified ({len(records_reg)} biomarkers recognized from realistic 17-line layout).")
 
+    # -------------------------------------------------------------
+    # Test 15: Local Enclave Authentication (Evaluator Login & Rejection)
+    # -------------------------------------------------------------
+    print("\n[Test 15] Local Enclave Authentication & PBKDF2 Hashing...")
+    from auth import (
+        init_auth_vault,
+        authenticate_user,
+        DEFAULT_EVALUATOR_EMAIL,
+        DEFAULT_EVALUATOR_PASS
+    )
+    init_auth_vault()
+    ok, msg, udata = authenticate_user(DEFAULT_EVALUATOR_EMAIL, DEFAULT_EVALUATOR_PASS)
+    assert ok, f"Evaluator login failed: {msg}"
+    assert udata["email"] == DEFAULT_EVALUATOR_EMAIL
+    assert udata["role"] == "Lead Clinical Evaluator"
+
+    # Verify wrong password rejection
+    bad_ok, bad_msg, _ = authenticate_user(DEFAULT_EVALUATOR_EMAIL, "WrongPassword!")
+    assert not bad_ok, "Expected bad password rejection"
+    print("✓ Passed: Enclave authenticated evaluator credentials and strictly rejected invalid passwords.")
+
+    # -------------------------------------------------------------
+    # Test 16: Practitioner Registration & Password Validation
+    # -------------------------------------------------------------
+    print("\n[Test 16] Practitioner Registration & Password Validation...")
+    from auth import register_user, validate_email, validate_password_strength
+    
+    assert validate_email("doctor@hospital.org") is True
+    assert validate_email("not-an-email") is False
+    
+    val_ok, _ = validate_password_strength("weak")
+    assert not val_ok
+    val_ok2, _ = validate_password_strength("ValidPass2026!")
+    assert val_ok2
+
+    test_doc = f"qa_test_{os.getpid()}@clinic.org"
+    reg_ok, reg_msg = register_user(test_doc, "SecurePass2026!", "SecurePass2026!")
+    assert reg_ok, f"Registration failed: {reg_msg}"
+    
+    login_ok, _, doc_data = authenticate_user(test_doc, "SecurePass2026!")
+    assert login_ok, "Login for newly registered practitioner failed"
+    assert doc_data["email"] == test_doc
+    print("✓ Passed: Account registration, password complexity validation, and session auth verified.")
+
     print("\n" + "=" * 60)
-    print("ALL 14 AUTOMATED TESTS PASSED WITH 100% SUCCESS! 🎉")
+    print("ALL 16 AUTOMATED TESTS PASSED WITH 100% SUCCESS! 🎉")
     print("=" * 60)
 
 if __name__ == "__main__":
